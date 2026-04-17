@@ -1,0 +1,3601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Profile Dataset Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --surface: #ffffff;
+            --text: #1e1e1e;
+            --text-secondary: #555555;
+            --text-tertiary: #999999;
+            --border: #e0e0e0;
+            --border-hover: #c0c0c0;
+            --accent: #f06449;
+            --accent-hover: #d94e35;
+            --highlight: #f7f7f7;
+            --radius: 6px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 1.25rem 1.5rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text);
+            letter-spacing: -0.02em;
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        #searchInput {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.6rem 0.85rem 0.6rem 2.2rem;
+            border-radius: var(--radius);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            width: 220px;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        #searchInput:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(68, 64, 60, 0.08);
+            width: 280px;
+        }
+
+        #searchInput::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.7rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+            font-size: 0.85rem;
+        }
+
+        /* Analytics Section */
+        .analytics-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem 1.5rem;
+            min-width: 120px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .stat-card h3 {
+            margin: 0;
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.4rem;
+            font-weight: 500;
+        }
+
+        .stat-card p {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        /* Table */
+        .table-wrapper {
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow-x: auto;
+        }
+
+        /* Sticky first two columns (checkbox + Profile) */
+        td:nth-child(1), td:nth-child(2) {
+            position: sticky;
+            z-index: 2;
+            background-color: var(--surface);
+        }
+        td:nth-child(1) { left: 0; }
+        td:nth-child(2) { left: 32px; position: sticky; }
+
+        th:nth-child(1), th:nth-child(2) {
+            position: sticky;
+            z-index: 4;
+            background-color: var(--highlight);
+        }
+        th:nth-child(1) { left: 0; }
+        th:nth-child(2) { left: 32px; }
+
+        /* Shadow hint on sticky edge */
+        td:nth-child(2)::after, th:nth-child(2)::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -6px;
+            bottom: 0;
+            width: 6px;
+            background: linear-gradient(to right, rgba(0,0,0,0.04), transparent);
+            pointer-events: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            text-align: left;
+            min-width: 1000px;
+        }
+
+        th, td {
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        th:last-child, td:last-child {
+            padding-right: 1.5rem;
+        }
+
+        .filter-row th {
+            padding: 0.35rem 0.5rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--highlight);
+        }
+
+        .row-select, #selectAllCheck {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+            accent-color: #f06449;
+        }
+
+        .filter-row input, .filter-row select {
+            transition: border-color 0.15s;
+        }
+
+        .col-filter-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .col-filter-wrap input {
+            flex: 1;
+            min-width: 0;
+            padding-right: 1.4rem !important;
+        }
+        .col-filter-clear{
+            position: absolute;
+            right: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-tertiary);
+            font-size: 0.85rem;
+            line-height: 1;
+            padding: 0 2px;
+            display: none;
+            font-family: Inter, sans-serif;
+        }
+        .col-filter-wrap.has-value .col-filter-clear{
+            display: block;
+        }
+        .col-filter-clear:hover{
+            color: var(--text);
+        }
+
+        .reset-all-btn{
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.3rem 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+            font-family: Inter, sans-serif;
+            cursor: pointer;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+        .reset-all-btn:hover{
+            background: #fff5f5;
+            border-color: #fed7d7;
+            color: #e53e3e;
+        }
+
+        th {
+            background: var(--highlight);
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.06em;
+        }
+
+        tr {
+            transition: background-color 0.15s ease;
+            background-color: var(--surface);
+        }
+
+        tr.status-Accept > td:first-child { background-color: #eafbf0; }
+        tr.status-Accept:hover > td:first-child { background-color: #d4f5e0; }
+
+        tr.status-Reject > td:first-child { background-color: #fdeeed; }
+        tr.status-Reject:hover > td:first-child { background-color: #fbdcda; }
+
+        tr.status-Not-sure > td:first-child { background-color: #fff8e6; }
+        tr.status-Not-sure:hover > td:first-child { background-color: #fff0cc; }
+
+        tr:hover {
+            background-color: var(--highlight);
+        }
+
+        .profile-img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid var(--border);
+        }
+
+        .name-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .title-cell {
+            font-size: 0.835rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+            max-width: 250px;
+            white-space: wrap;
+            word-wrap: break-word;
+        }
+
+        .link-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent);
+            color: #ffffff;
+            padding: 0.45rem 0.85rem;
+            border-radius: var(--radius);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.8rem;
+            transition: background 0.15s ease;
+        }
+
+        .link-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1rem;
+            color: var(--text-tertiary);
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        .badge {
+            font-size: 0.68rem;
+            padding: 0.15rem 0.45rem;
+            border-radius: 3px;
+            margin-right: 0.35rem;
+            background: var(--highlight);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        /* Editing Elements */
+        .editable {
+            padding: 0.3rem 0.4rem;
+            border-radius: 4px;
+            border: 1px dashed transparent;
+            min-width: 80px;
+            display: inline-block;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+
+        .editable:hover {
+            background: var(--highlight);
+            border-color: var(--border-hover);
+        }
+
+        .editable:focus {
+            outline: none;
+            background: var(--surface);
+            border: 1px solid var(--accent);
+            color: var(--text);
+            cursor: text;
+            box-shadow: 0 0 0 3px rgba(68, 64, 60, 0.06);
+        }
+
+        select.dark-select {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 0.35rem 0.45rem;
+            border-radius: var(--radius);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: border-color 0.15s;
+            outline: none;
+            -webkit-appearance: auto;
+            appearance: auto;
+        }
+
+        select.dark-select:hover {
+            border-color: var(--border-hover);
+        }
+
+        select.dark-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(68, 64, 60, 0.06);
+        }
+
+        select.dark-select option {
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .saved-msg {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background: #333333;
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(150%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            z-index: 1000;
+            font-size: 0.85rem;
+            letter-spacing: 0.01em;
+        }
+
+        .saved-msg.show {
+            transform: translateY(0);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(28, 25, 23, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            max-width: 800px;
+            width: 90vw;
+            text-align: center;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: #1e1e1e;
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .modal-content p {
+            color: var(--text-secondary);
+            line-height: 1.55;
+            margin-bottom: 1.75rem;
+            font-size: 0.9rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            padding: 0.6rem 1.1rem;
+            border-radius: var(--radius);
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .btn-download {
+            background: #f06449;
+            color: #ffffff;
+            border-color: #f06449;
+        }
+
+        .btn-download:hover {
+            background: #d94e35;
+        }
+
+        .btn-copy {
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .btn-copy:hover {
+            background: var(--highlight);
+        }
+
+        .btn-cancel {
+            background: var(--surface);
+            color: #e53e3e;
+            border-color: #fed7d7;
+        }
+
+        .btn-cancel:hover {
+            background: #fff5f5;
+        }
+
+        /* Empty state buttons */
+        .empty-state-btn {
+            padding: 0.85rem 2.25rem;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 240px;
+            justify-content: center;
+        }
+        .empty-state-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+        }
+        .empty-state-btn-primary {
+            background: var(--accent);
+            color: #ffffff;
+        }
+        .empty-state-btn-primary:hover {
+            background: var(--accent-hover);
+        }
+        .empty-state-btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .empty-state-btn-secondary:hover {
+            background: var(--highlight);
+            border-color: var(--border-hover);
+        }
+    </style>
+    <style>
+        .action-btn {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 0.4rem 0.7rem;
+            border-radius: var(--radius);
+            font-size: 0.78rem;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+        .action-btn:hover {
+            background: var(--highlight);
+            border-color: var(--border-hover);
+        }
+
+        /* Settings Dropdown */
+        .settings-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            min-width: 200px;
+            z-index: 100;
+            padding: 0.35rem 0;
+        }
+        .settings-dropdown.settings-open {
+            display: block;
+        }
+        .settings-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.85rem;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text);
+            cursor: pointer;
+            transition: background 0.12s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: 'Inter', sans-serif;
+        }
+        .settings-item:hover {
+            background: var(--highlight);
+        }
+        .settings-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0.25rem 0;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .hide-answers .answer-col {
+            display: none;
+        }
+
+        /* Column Manager Modal */
+        .col-mgr-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .col-mgr-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.55rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 0.35rem;
+            background: var(--surface);
+            transition: background 0.12s, box-shadow 0.12s;
+            font-size: 0.85rem;
+        }
+        .col-mgr-item.locked {
+            opacity: 0.5;
+            cursor: default;
+        }
+        .col-mgr-item:not(.locked) {
+            cursor: grab;
+        }
+        .col-mgr-item:not(.locked):active {
+            cursor: grabbing;
+        }
+        .col-mgr-item.drag-over {
+            box-shadow: 0 -2px 0 0 var(--accent);
+        }
+        .col-mgr-item .drag-handle {
+            color: var(--text-tertiary);
+            font-size: 1rem;
+            user-select: none;
+        }
+        .col-mgr-item .col-name {
+            flex: 1;
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .col-mgr-item .col-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .col-mgr-item .col-actions button {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0.2rem 0.4rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            transition: all 0.12s;
+            font-family: 'Inter', sans-serif;
+        }
+        .col-mgr-item .col-actions button:hover {
+            background: var(--highlight);
+            border-color: var(--border-hover);
+        }
+        .col-mgr-item .col-actions button.delete-col:hover {
+            background: #fff5f5;
+            border-color: #fed7d7;
+            color: #e53e3e;
+        }
+        .col-mgr-item.hidden-col {
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 0.75rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+            <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                <input type="file" id="loadRsvpsBtn" accept=".csv" style="display: none;">
+                <button class="action-btn" id="updateRsvpsBtn" style="background: var(--accent); color: #ffffff; border-color: var(--accent);">Update RSVPs</button>
+            </div>
+            <h1 id="eventTitle" contenteditable="true" spellcheck="false" style="font-size: 1.5rem; font-weight: 600; color: var(--text); letter-spacing: -0.02em; text-align: center; flex: 1; min-width: 100px; padding: 0.2rem 0.5rem; border-radius: var(--radius); border: 1px dashed transparent; transition: border-color 0.15s; outline: none; cursor: text;" onfocus="this.style.borderColor='var(--border-hover)'" onblur="this.style.borderColor='transparent'; localStorage.setItem('eventTitle', this.innerText.trim());">Untitled Event</h1>
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                <div class="search-container" style="margin: 0;">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search profiles...">
+                </div>
+                <!-- Settings Dropdown -->
+                <div style="position: relative;" id="settingsDropdownWrap">
+                    <button class="action-btn" onclick="document.getElementById('settingsDropdown').classList.toggle('settings-open')" style="display: flex; align-items: center; gap: 4px;" title="Settings">
+                        ⚙️ <svg width="10" height="10" viewBox="0 0 10 10" style="opacity: 0.5;"><path d="M2 4l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </button>
+                    <div id="settingsDropdown" class="settings-dropdown">
+                        <label class="settings-item" title="Block all external images (LinkedIn, etc.) to prevent anti-scraping tracking">
+                            <input type="checkbox" id="blockExternalImagesToggle" checked style="margin: 0; cursor: pointer; accent-color: #f06449;">
+                            <span>Block Images</span>
+                        </label>
+                        <label class="settings-item" title="Show or hide answer columns">
+                            <input type="checkbox" id="showAnswersToggle" checked onchange="document.querySelector('.table-wrapper').classList.toggle('hide-answers', !this.checked)" style="margin: 0; cursor: pointer; accent-color: #f06449;">
+                            <span>Show Answers</span>
+                        </label>
+                        <div class="settings-divider"></div>
+                        <button class="settings-item" id="manageColumnsBtn" title="Show/hide, reorder, or delete columns">Manage Columns</button>
+                        <button class="settings-item" onclick="openTaxonomyManager()" title="Edit Seniority and Function options">Edit Categories</button>
+                        <div class="settings-divider"></div>
+                        <button class="settings-item" id="saveDbBtn" title="Save current state (Profiles + Overrides)">Save DB ⬇️</button>
+                        <label class="settings-item" id="loadDbLabel" title="Load a saved DB state (.json)">
+                            <span>Load DB ⬆️</span>
+                            <input type="file" id="loadDbBtn" accept=".json" style="display: none;">
+                        </label>
+                        <div class="settings-divider"></div>
+                        <button class="settings-item" onclick="exportAnonymized()" title="Export a static anonymized version for sharing">📤 Export Anonymized</button>
+                        <button class="settings-item" onclick="exportBuildingSecurityCSV()" title="Export name and email list for building security">🏢 Export Building Security CSV</button>
+                        <button class="settings-item" onclick="openApifyTokenModal()" title="Configure Apify API token">🔑 Apify Token</button>
+                        <div class="settings-divider"></div>
+                        <button class="settings-item" id="clearDbBtn" style="color: #e53e3e;" title="Delete all profiles and overrides">Clear Database</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Charts -->
+        <div id="chartsSection" style="display: flex; gap: 1.25rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 250px; max-width: 350px; background: var(--surface); padding: 1rem; border-radius: var(--radius); border: 1px solid var(--border);">
+                <h2 style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.75rem; margin-top: 0; text-align: center; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;">Seniority Breakdown</h2>
+                <div style="position: relative; height: 230px;">
+                    <canvas id="seniorityChart"></canvas>
+                </div>
+            </div>
+            <div style="flex: 1; min-width: 250px; max-width: 350px; background: var(--surface); padding: 1rem; border-radius: var(--radius); border: 1px solid var(--border);">
+                <h2 style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.75rem; margin-top: 0; text-align: center; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;">Function Breakdown</h2>
+                <div style="position: relative; height: 230px;">
+                    <canvas id="functionChart"></canvas>
+                </div>
+            </div>
+            <div style="flex: 1; min-width: 250px; max-width: 350px; background: var(--surface); padding: 1rem; border-radius: var(--radius); border: 1px solid var(--border);">
+                <h2 style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 0.75rem; margin-top: 0; text-align: center; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;">Dietary Breakdown</h2>
+                <div id="dietStats" style="overflow-y: auto; height: 230px; padding: 0 0.25rem;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Status counts + Filter reset bar (always visible, reserves space) -->
+        <div id="statusFilterBar" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; min-height: 2rem; font-size: 0.85rem; font-weight: 500;">
+            <div style="display: flex; gap: 1.5rem;">
+                <div onclick="setFilter('Status', 'Accept')" style="color: #16a34a; cursor: pointer;">Accept <span id="countAccept" style="font-weight: 700;">0</span></div>
+                <div onclick="setFilter('Status', 'Not sure')" style="color: #d97706; cursor: pointer;">??? <span id="countNotSure" style="font-weight: 700;">0</span></div>
+                <div onclick="setFilter('Status', 'Reject')" style="color: #e53e3e; cursor: pointer;">Reject <span id="countReject" style="font-weight: 700;">0</span></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div id="filterResetRight" style="display: none; align-items: center; gap: 0.5rem;">
+                    <span style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 500;" id="filterResetText"></span>
+                    <button onclick="resetAllColFilters()" class="reset-all-btn">Reset All Filters</button>
+                </div>
+                <div id="deleteSelectedArea" style="display: none; align-items: center; gap: 0.5rem;">
+                    <span style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 500;" id="selectedCountText"></span>
+                    <button onclick="deleteSelectedRows()" class="reset-all-btn" style="color: #e53e3e; border-color: #fed7d7;">Delete Selected</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="emptyState" style="display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; gap: 1.5rem; padding: 2rem;">
+            <div style="font-size: 3rem; opacity: 0.3;">📋</div>
+            <div>
+                <h2 style="font-size: 1.3rem; font-weight: 600; color: var(--text); margin: 0 0 0.4rem;">No profiles loaded</h2>
+                <p style="font-size: 0.9rem; color: var(--text-tertiary); margin: 0;">Get started by adding your Apify token and loading event RSVPs</p>
+            </div>
+            <div id="emptyStateActions" style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem; margin-top: 0.5rem;"></div>
+        </div>
+
+        <div class="table-wrapper" id="tableWrapper">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Profile</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Seniority</th>
+                        <th>Function</th>
+                        <th>Current Company</th>
+                        <th>Previous Company</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="8" class="loading">Loading dataset...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Export modal removed — unified into Load RSVPs flow -->
+
+    <div id="answersModal" class="modal-overlay" onclick="if(event.target===this) this.style.display='none'">
+        <div class="modal-content" id="answersModalContent">
+        </div>
+    </div>
+
+    <div id="loadRsvpsPage" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 3000; overflow-y: auto;">
+        <div style="max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 4rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                <h1 style="font-size: 1.5rem; font-weight: 700; margin: 0; letter-spacing: -0.02em;">Load RSVPs</h1>
+                <button onclick="closeLoadRsvpsPage()" class="action-btn">✕ Cancel</button>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1.5rem; line-height: 1.5;">Select columns to import. LinkedIn profiles will be scraped automatically via Apify.</p>
+
+            <!-- Apify Token Section -->
+            <div id="rsvpTokenSection" style="background: var(--highlight); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <h3 style="margin: 0; font-size: 0.9rem; font-weight: 600;">Apify API Token</h3>
+                    <a href="https://console.apify.com/account/integrations" target="_blank" style="font-size: 0.78rem; color: var(--accent); text-decoration: none; font-weight: 500;">Get your token &rarr;</a>
+                </div>
+                <div id="rsvpTokenStatus"></div>
+                <div id="rsvpTokenInputArea" style="display: none;">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="rsvpPageTokenInput" placeholder="apify_api_..." style="flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-family: 'Inter', monospace; font-size: 0.82rem; outline: none; transition: border-color 0.15s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+                        <button onclick="const v=document.getElementById('rsvpPageTokenInput').value.trim(); if(v){localStorage.setItem('apify_api_token',v); refreshRsvpTokenStatus(); showToast('Token saved');} else {alert('Enter a token');}" class="action-btn" style="white-space: nowrap;">Save Token</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column Selection -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <div>
+                    <h3 style="margin: 0; font-size: 0.9rem; font-weight: 600;">Columns to Show</h3>
+                    <p style="margin: 0.15rem 0 0; font-size: 0.75rem; color: var(--text-tertiary);">All columns are imported. Check the ones you want visible in the table.</p>
+                </div>
+                <div style="display: flex; gap: 0.4rem;">
+                    <button onclick="document.querySelectorAll('.col-picker-cb:not(:disabled)').forEach(cb => cb.checked = true)" class="action-btn" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Select All</button>
+                    <button onclick="document.querySelectorAll('.col-picker-cb:not(:disabled)').forEach(cb => cb.checked = false)" class="action-btn" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Deselect All</button>
+                </div>
+            </div>
+            <div id="rsvpColGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.6rem; margin-bottom: 1.5rem;">
+            </div>
+
+            <!-- Scrape Info -->
+            <div id="rsvpScrapeInfo" style="margin-bottom: 1.5rem;"></div>
+
+            <!-- Action -->
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <button onclick="closeLoadRsvpsPage()" class="modal-btn btn-cancel">Cancel</button>
+                <button id="rsvpImportOnlyBtn" onclick="importColumnsOnly()" class="modal-btn btn-copy" title="Import selected columns into existing profiles. No LinkedIn scraping will be performed." style="font-size: 0.9rem; padding: 0.65rem 1.5rem;">Import Only</button>
+                <button id="rsvpImportBtn" onclick="importColumnsAndScrape()" class="modal-btn btn-download" style="font-size: 0.9rem; padding: 0.65rem 1.5rem;">Import &amp; Scrape</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="apifyTokenModal" class="modal-overlay" onclick="if(event.target===this) this.style.display='none'">
+        <div class="modal-content" style="max-width: 480px; text-align: left;">
+            <h3 style="margin-bottom: 0.5rem;">Connect Your Apify Account</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.6;">
+                To automatically scrape LinkedIn profiles, you need a free Apify account.<br>
+                <strong>Scraping uses your own account credits</strong> (not ours).
+            </p>
+            <div style="background: var(--highlight); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.25rem;">
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.84rem;">
+                    <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                        <span style="background: var(--accent); color: white; border-radius: 50%; min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700;">1</span>
+                        <span>Create a free account at <a href="https://apify.com" target="_blank" style="color: var(--accent); font-weight: 600;">apify.com</a></span>
+                    </div>
+                    <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                        <span style="background: var(--accent); color: white; border-radius: 50%; min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700;">2</span>
+                        <span>Go to <a href="https://console.apify.com/account/integrations" target="_blank" style="color: var(--accent); font-weight: 600;">Settings &rarr; Integrations</a></span>
+                    </div>
+                    <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                        <span style="background: var(--accent); color: white; border-radius: 50%; min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700;">3</span>
+                        <span>Copy your <strong>Personal API Token</strong> (starts with <code style="background: var(--surface); padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.8rem;">apify_api_...</code>)</span>
+                    </div>
+                    <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                        <span style="background: var(--accent); color: white; border-radius: 50%; min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700;">4</span>
+                        <span>Paste it below</span>
+                    </div>
+                </div>
+            </div>
+            <div id="apifyTokenModalStatus"></div>
+            <input type="text" id="apifyTokenInput" placeholder="apify_api_..." style="width: 100%; padding: 0.6rem 0.85rem; border: 1px solid var(--border); border-radius: var(--radius); font-family: 'Inter', monospace; font-size: 0.85rem; outline: none; margin-bottom: 0.5rem; transition: border-color 0.15s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+            <p style="font-size: 0.75rem; color: var(--text-tertiary); margin-bottom: 1rem; margin-top: 0;">Your token is stored only in this browser and never saved to disk.</p>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button onclick="document.getElementById('apifyTokenModal').style.display='none'" class="modal-btn btn-cancel">Cancel</button>
+                <button onclick="saveApifyToken()" class="modal-btn btn-download">Save &amp; Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="apifyProgressModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 580px; text-align: left;">
+            <h3 style="margin-bottom: 0.5rem;">Scraping LinkedIn Profiles</h3>
+            <div id="apifyProgressSteps" style="margin-bottom: 1rem;">
+            </div>
+            <div id="apifyProgressStatus" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem; min-height: 1.5em;">
+            </div>
+            <details open style="margin-bottom: 1rem;">
+                <summary style="cursor: pointer; font-size: 0.78rem; color: var(--text-tertiary); font-weight: 500; user-select: none;">Log</summary>
+                <pre id="apifyLogOutput" style="margin-top: 0.5rem; background: #1e1e1e; color: #d4d4d4; font-family: 'SF Mono', 'Menlo', monospace; font-size: 0.72rem; padding: 0.75rem; border-radius: var(--radius); max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.5;"></pre>
+            </details>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button id="apifyAbortBtn" onclick="abortApifyRun()" class="modal-btn btn-cancel">Abort</button>
+                <button id="apifyCloseBtn" onclick="document.getElementById('apifyProgressModal').style.display='none'" class="modal-btn btn-cancel" style="display: none;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="colMgrModal" class="modal-overlay" onclick="if(event.target===this) this.style.display='none'">
+        <div class="modal-content" style="max-width: 500px; text-align: left;">
+            <h3 style="margin-bottom: 0.25rem;">Manage Columns</h3>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">Drag to reorder. First 2 columns are locked.</p>
+            <ul class="col-mgr-list" id="colMgrList"></ul>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
+                <button onclick="document.getElementById('colMgrModal').style.display='none'" class="modal-btn btn-cancel">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Categories (Seniority / Function) Modal -->
+    <div id="taxonomyMgrModal" class="modal-overlay" onclick="if(event.target===this) this.style.display='none'">
+        <div class="modal-content" style="max-width: 640px; text-align: left;">
+            <h3 style="margin-bottom: 0.25rem;">Edit Categories</h3>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Add, rename (click a label), reorder (drag), or delete the options used in Seniority and Function dropdowns.</p>
+            <p style="font-size: 0.78rem; color: var(--text-tertiary); margin-bottom: 1rem;">Each row has <strong>keywords</strong> — if any appear in a profile's title, that profile is auto-classified here. Matched <strong>bottom-to-top</strong>, so drag more specific rules toward the bottom. An empty keyword list = fallback.</p>
+            <div style="display: flex; gap: 1.25rem; align-items: flex-start;">
+                <div style="flex: 1; min-width: 0;">
+                    <h4 style="font-size: 0.72rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 0.5rem 0; font-weight: 600;">Seniority</h4>
+                    <ul class="col-mgr-list" id="seniorityMgrList"></ul>
+                    <div style="display: flex; gap: 0.4rem; margin-top: 0.5rem;">
+                        <input type="text" id="newSeniorityInput" placeholder="Add new…" style="flex:1; min-width:0; padding: 0.4rem 0.6rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: var(--radius); outline: none; font-family: inherit;" onkeydown="if(event.key==='Enter'){event.preventDefault(); addTaxonomyItem('seniority');}">
+                        <button onclick="addTaxonomyItem('seniority')" class="modal-btn" style="padding: 0.4rem 0.75rem;">Add</button>
+                    </div>
+                    <button onclick="resetTaxonomy('seniority')" style="margin-top: 0.5rem; background: none; border: none; color: var(--text-tertiary); font-size: 0.75rem; cursor: pointer; padding: 0; font-family: inherit;" title="Reset to defaults">Reset to defaults</button>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                    <h4 style="font-size: 0.72rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 0.5rem 0; font-weight: 600;">Function</h4>
+                    <ul class="col-mgr-list" id="functionMgrList"></ul>
+                    <div style="display: flex; gap: 0.4rem; margin-top: 0.5rem;">
+                        <input type="text" id="newFunctionInput" placeholder="Add new…" style="flex:1; min-width:0; padding: 0.4rem 0.6rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: var(--radius); outline: none; font-family: inherit;" onkeydown="if(event.key==='Enter'){event.preventDefault(); addTaxonomyItem('function');}">
+                        <button onclick="addTaxonomyItem('function')" class="modal-btn" style="padding: 0.4rem 0.75rem;">Add</button>
+                    </div>
+                    <button onclick="resetTaxonomy('function')" style="margin-top: 0.5rem; background: none; border: none; color: var(--text-tertiary); font-size: 0.75rem; cursor: pointer; padding: 0; font-family: inherit;" title="Reset to defaults">Reset to defaults</button>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.25rem;">
+                <button onclick="document.getElementById('taxonomyMgrModal').style.display='none'" class="modal-btn btn-cancel">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear Database Confirmation Modal -->
+    <div id="clearDbModal" class="modal-overlay" onclick="if(event.target===this) closeClearDbModal()">
+        <div class="modal-content" style="max-width: 420px; text-align: left;">
+            <h3 style="margin-bottom: 0.5rem; color: #e53e3e;">Clear Entire Database</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">This will permanently delete all profiles, overrides, and column settings.</p>
+            <p style="font-size: 0.82rem; color: var(--text-tertiary); margin-bottom: 1.25rem;">This action <strong>cannot be undone</strong>. Consider saving a backup first.</p>
+            <label style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 0.4rem;">Type <strong style="color: #e53e3e;">delete</strong> to confirm</label>
+            <input type="text" id="clearDbConfirmInput" autocomplete="off" spellcheck="false" placeholder="delete" style="width: 100%; padding: 0.55rem 0.75rem; font-size: 0.9rem; border: 2px solid var(--border); border-radius: var(--radius); outline: none; box-sizing: border-box; font-family: inherit; transition: border-color 0.15s;" oninput="document.getElementById('clearDbConfirmBtn').disabled = this.value.trim().toLowerCase() !== 'delete'; document.getElementById('clearDbConfirmBtn').style.opacity = this.value.trim().toLowerCase() === 'delete' ? '1' : '0.4';">
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.25rem;">
+                <button onclick="closeClearDbModal()" class="modal-btn btn-cancel">Cancel</button>
+                <button id="clearDbConfirmBtn" onclick="executeClearDb()" class="modal-btn" disabled style="background: #e53e3e; color: white; border: none; opacity: 0.4; transition: opacity 0.15s; cursor: pointer;">Delete Everything</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="saved-msg">Changes Saved</div>
+
+    <script>
+        let fullData = [];
+        let activeFilter = null;
+
+        // Column configuration: order + visibility
+        // Locked columns (Profile, Title) are always first and not in this config.
+        // Each entry: { id: string, label: string, type: 'core'|'answer', visible: boolean }
+        let columnConfig = [];
+
+        const CORE_COLUMNS = [
+            { id: 'status', label: 'Status' },
+            { id: 'seniority', label: 'Seniority' },
+            { id: 'function', label: 'Function' },
+            { id: 'currentCompany', label: 'Current Company' },
+            { id: 'previousCompany', label: 'Previous Company' },
+        ];
+
+        function loadColumnConfig() {
+            try {
+                const saved = localStorage.getItem('columnConfig');
+                if (saved) columnConfig = JSON.parse(saved);
+            } catch(e) { columnConfig = []; }
+        }
+
+        function saveColumnConfig() {
+            localStorage.setItem('columnConfig', JSON.stringify(columnConfig));
+        }
+
+        function buildColumnConfig() {
+            // Collect all dynamic answer questions from overrides
+            const questionsSet = new Set();
+            fullData.forEach(p => {
+                const ans = savedOverrides[p.uniqueId]?.answers;
+                if (ans) Object.keys(ans).forEach(k => questionsSet.add(k));
+            });
+            const dynamicQuestions = Array.from(questionsSet);
+
+            // Start from saved config, preserve order
+            const existing = new Map(columnConfig.map(c => [c.id, c]));
+            const newConfig = [];
+            const seen = new Set();
+
+            // First, add items from saved config that still exist
+            columnConfig.forEach(c => {
+                const stillExists = c.type === 'core'
+                    ? CORE_COLUMNS.some(cc => cc.id === c.id)
+                    : dynamicQuestions.includes(c.id);
+                if (stillExists) {
+                    newConfig.push({ ...c });
+                    seen.add(c.id);
+                }
+            });
+
+            // Add any new core columns not yet in config
+            CORE_COLUMNS.forEach(cc => {
+                if (!seen.has(cc.id)) {
+                    newConfig.push({ id: cc.id, label: cc.label, type: 'core', visible: true });
+                    seen.add(cc.id);
+                }
+            });
+
+            // Add any new answer columns not yet in config
+            dynamicQuestions.forEach(q => {
+                if (!seen.has(q)) {
+                    const isDietary = q.startsWith('Do you have any dietary restrictions') || q.includes('dietary');
+                    newConfig.push({ id: q, label: isDietary ? 'Dietary' : q, type: 'answer', visible: true });
+                    seen.add(q);
+                }
+            });
+
+            columnConfig = newConfig;
+            saveColumnConfig();
+        }
+
+        function deleteAnswerColumn(colId) {
+            // Remove from config
+            columnConfig = columnConfig.filter(c => c.id !== colId);
+            saveColumnConfig();
+
+            // Remove from all overrides
+            Object.values(savedOverrides).forEach(ov => {
+                if (ov.answers && ov.answers[colId] !== undefined) {
+                    delete ov.answers[colId];
+                }
+            });
+
+            localStorage.setItem('linkedin_overrides', JSON.stringify(savedOverrides));
+            showToast('Column deleted');
+
+            applyFilters();
+            openColumnManager();
+        }
+
+        function openColumnManager() {
+            buildColumnConfig();
+            const list = document.getElementById('colMgrList');
+            list.innerHTML = '';
+
+            // Locked columns first (not draggable)
+            ['Profile', 'Title'].forEach(name => {
+                const li = document.createElement('li');
+                li.className = 'col-mgr-item locked';
+                li.innerHTML = `<span class="drag-handle">🔒</span><span class="col-name">${name}</span>`;
+                list.appendChild(li);
+            });
+
+            // Configurable columns
+            columnConfig.forEach((col, idx) => {
+                const li = document.createElement('li');
+                li.className = 'col-mgr-item' + (col.visible ? '' : ' hidden-col');
+                li.draggable = true;
+                li.dataset.idx = idx;
+
+                const eyeLabel = col.visible ? 'Hide' : 'Show';
+                const eyeIcon = col.visible ? '👁' : '👁‍🗨';
+                const displayLabel = col.label.length > 40 ? col.label.substring(0, 40) + '…' : col.label;
+                const deleteBtn = col.type === 'answer'
+                    ? `<button class="delete-col" onclick="event.stopPropagation(); if(confirm('Delete column &quot;${col.label.replace(/"/g, '').substring(0,30)}&quot;?')) deleteAnswerColumn('${col.id.replace(/'/g, "\\'")}');" title="Delete column">✕</button>`
+                    : '';
+
+                li.innerHTML = `
+                    <span class="drag-handle">⠿</span>
+                    <span class="col-name" title="${col.id.replace(/"/g, '&quot;')}">${displayLabel}</span>
+                    <span class="col-actions">
+                        <button onclick="event.stopPropagation(); toggleColVisibility(${idx})" title="${eyeLabel}">${eyeIcon}</button>
+                        ${deleteBtn}
+                    </span>`;
+
+                // Drag events
+                li.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', idx);
+                    li.style.opacity = '0.4';
+                });
+                li.addEventListener('dragend', () => { li.style.opacity = ''; });
+                li.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    li.classList.add('drag-over');
+                });
+                li.addEventListener('dragleave', () => { li.classList.remove('drag-over'); });
+                li.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    li.classList.remove('drag-over');
+                    const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+                    const toIdx = idx;
+                    if (fromIdx === toIdx) return;
+                    const item = columnConfig.splice(fromIdx, 1)[0];
+                    columnConfig.splice(toIdx, 0, item);
+                    saveColumnConfig();
+                    applyFilters();
+                    openColumnManager(); // re-render list
+                });
+
+                list.appendChild(li);
+            });
+
+            document.getElementById('colMgrModal').style.display = 'flex';
+        }
+
+        window.toggleColVisibility = function(idx) {
+            columnConfig[idx].visible = !columnConfig[idx].visible;
+            saveColumnConfig();
+            applyFilters();
+            openColumnManager();
+        };
+
+        // ─── Taxonomy Manager (Seniority / Function options + keywords) ──────────
+        function saveTaxonomy() {
+            syncDerivedLabels();
+            localStorage.setItem('seniority_items', JSON.stringify(SENIORITY_ITEMS));
+            localStorage.setItem('function_items', JSON.stringify(FUNCTION_ITEMS));
+            // Keep legacy label-only keys in sync for any external readers.
+            localStorage.setItem('seniority_levels', JSON.stringify(SENIORITY_LEVELS));
+            localStorage.setItem('function_roles', JSON.stringify(FUNCTION_ROLES));
+        }
+
+        function getTaxonomyItems(kind) { return kind === 'seniority' ? SENIORITY_ITEMS : FUNCTION_ITEMS; }
+        function setTaxonomyItems(kind, items) {
+            if (kind === 'seniority') SENIORITY_ITEMS = items;
+            else FUNCTION_ITEMS = items;
+            syncDerivedLabels();
+        }
+        function getTaxonomyDisplayField(kind) { return kind === 'seniority' ? 'displaySeniority' : 'displayFunction'; }
+        function getTaxonomyOverrideField(kind) { return kind === 'seniority' ? 'seniority' : 'func'; }
+
+        function persistOverridesToServer() {
+            localStorage.setItem('linkedin_overrides', JSON.stringify(savedOverrides));
+        }
+
+        window.openTaxonomyManager = function() {
+            renderTaxonomyList('seniority');
+            renderTaxonomyList('function');
+            document.getElementById('taxonomyMgrModal').style.display = 'flex';
+            // Close settings dropdown
+            const dd = document.getElementById('settingsDropdown');
+            if (dd) dd.classList.remove('settings-open');
+        };
+
+        function renderTaxonomyList(kind) {
+            const listId = kind === 'seniority' ? 'seniorityMgrList' : 'functionMgrList';
+            const list = document.getElementById(listId);
+            const items = getTaxonomyItems(kind);
+            list.innerHTML = '';
+            items.forEach((item, idx) => {
+                const li = document.createElement('li');
+                li.className = 'col-mgr-item';
+                li.draggable = true;
+                li.dataset.idx = idx;
+                li.style.flexDirection = 'column';
+                li.style.alignItems = 'stretch';
+                li.style.gap = '0.4rem';
+
+                // Top row: drag handle + label + delete
+                const topRow = document.createElement('div');
+                topRow.style.cssText = 'display:flex; align-items:center; gap:0.6rem;';
+
+                const handle = document.createElement('span');
+                handle.className = 'drag-handle';
+                handle.textContent = '⠿';
+
+                const nameEl = document.createElement('span');
+                nameEl.className = 'col-name';
+                nameEl.contentEditable = 'true';
+                nameEl.spellcheck = false;
+                nameEl.style.cursor = 'text';
+                nameEl.style.padding = '2px 4px';
+                nameEl.style.borderRadius = '3px';
+                nameEl.textContent = item.label;
+                nameEl.title = 'Click to rename';
+                nameEl.addEventListener('focus', () => { nameEl.style.background = 'var(--highlight)'; });
+                nameEl.addEventListener('blur', () => {
+                    nameEl.style.background = '';
+                    renameTaxonomyItem(kind, idx, nameEl.textContent);
+                });
+                nameEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
+                    if (e.key === 'Escape') { e.preventDefault(); nameEl.textContent = getTaxonomyItems(kind)[idx].label; nameEl.blur(); }
+                });
+
+                const actions = document.createElement('span');
+                actions.className = 'col-actions';
+                const delBtn = document.createElement('button');
+                delBtn.className = 'delete-col';
+                delBtn.textContent = '✕';
+                delBtn.title = 'Delete';
+                delBtn.onclick = (e) => { e.stopPropagation(); deleteTaxonomyItem(kind, idx); };
+                actions.appendChild(delBtn);
+
+                topRow.append(handle, nameEl, actions);
+
+                // Keywords row
+                const kwRow = document.createElement('div');
+                kwRow.style.cssText = 'display:flex; align-items:center; gap:0.4rem; padding-left:1.6rem;';
+                const kwLabel = document.createElement('span');
+                kwLabel.textContent = 'Keywords';
+                kwLabel.style.cssText = 'font-size:0.7rem; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.05em; white-space:nowrap;';
+                const kwInput = document.createElement('input');
+                kwInput.type = 'text';
+                kwInput.value = (item.keywords || []).join(', ');
+                kwInput.placeholder = item.keywords && item.keywords.length === 0 ? 'empty = fallback' : 'comma-separated, case-insensitive';
+                kwInput.style.cssText = 'flex:1; min-width:0; padding:0.3rem 0.5rem; font-size:0.8rem; border:1px solid var(--border); border-radius:var(--radius); outline:none; font-family:inherit;';
+                kwInput.title = 'Comma-separated substrings. If any appear in a profile\'s title, that profile will be auto-classified here.';
+                kwInput.addEventListener('focus', () => { kwInput.style.borderColor = 'var(--accent)'; });
+                kwInput.addEventListener('blur', () => {
+                    kwInput.style.borderColor = 'var(--border)';
+                    updateTaxonomyKeywords(kind, idx, kwInput.value);
+                });
+                kwInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); kwInput.blur(); }
+                });
+                kwRow.append(kwLabel, kwInput);
+
+                // Drag & drop reorder (on topRow handle only, to avoid conflicting with inputs)
+                li.addEventListener('dragstart', (e) => {
+                    if (document.activeElement === nameEl || document.activeElement === kwInput) { e.preventDefault(); return; }
+                    e.dataTransfer.setData('text/plain', String(idx));
+                    e.dataTransfer.setData('taxonomy-kind', kind);
+                    li.style.opacity = '0.4';
+                });
+                li.addEventListener('dragend', () => { li.style.opacity = ''; });
+                li.addEventListener('dragover', (e) => { e.preventDefault(); li.classList.add('drag-over'); });
+                li.addEventListener('dragleave', () => { li.classList.remove('drag-over'); });
+                li.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    li.classList.remove('drag-over');
+                    const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+                    const srcKind = e.dataTransfer.getData('taxonomy-kind');
+                    if (srcKind && srcKind !== kind) return;
+                    const toIdx = idx;
+                    if (isNaN(fromIdx) || fromIdx === toIdx) return;
+                    const items2 = getTaxonomyItems(kind);
+                    const moved = items2.splice(fromIdx, 1)[0];
+                    items2.splice(toIdx, 0, moved);
+                    saveTaxonomy();
+                    renderTaxonomyList(kind);
+                    applyFilters();
+                });
+
+                li.append(topRow, kwRow);
+                list.appendChild(li);
+            });
+        }
+
+        function parseKeywordsInput(str) {
+            return (str || '')
+                .split(',')
+                .map(s => s.trim().toLowerCase())
+                .filter(s => s.length > 0);
+        }
+
+        window.updateTaxonomyKeywords = function(kind, idx, rawValue) {
+            const items = getTaxonomyItems(kind);
+            if (!items[idx]) return;
+            const parsed = parseKeywordsInput(rawValue);
+            const before = JSON.stringify(items[idx].keywords || []);
+            items[idx].keywords = parsed;
+            saveTaxonomy();
+            // Re-apply auto-guess to profiles that DON'T have a manual override.
+            reapplyAutoGuess(kind);
+            if (before !== JSON.stringify(parsed)) showToast('Keywords updated');
+            applyFilters();
+        };
+
+        // Re-run guess on profiles without a manual override for this field.
+        function reapplyAutoGuess(kind) {
+            const field = getTaxonomyDisplayField(kind);
+            const ovField = getTaxonomyOverrideField(kind);
+            fullData.forEach(p => {
+                const ov = savedOverrides[p.uniqueId] || {};
+                if (ov[ovField]) return; // manual override — skip
+                // Use the (potentially overridden) currentCompany as the source, matching processProfile behavior
+                const src = (ov.currentCompany !== undefined ? ov.currentCompany : p.rawTitle);
+                p[field] = kind === 'seniority' ? guessSeniority(src) : guessFunction(src);
+            });
+        }
+
+        window.renameTaxonomyItem = function(kind, idx, newLabel) {
+            newLabel = (newLabel || '').trim();
+            const items = getTaxonomyItems(kind);
+            const oldItem = items[idx];
+            if (!oldItem) return;
+            const oldLabel = oldItem.label;
+            if (!newLabel) {
+                alert('Name cannot be empty.');
+                renderTaxonomyList(kind);
+                return;
+            }
+            if (newLabel === oldLabel) { renderTaxonomyList(kind); return; }
+            if (items.some((it, i) => i !== idx && it.label === newLabel)) {
+                alert('"' + newLabel + '" already exists.');
+                renderTaxonomyList(kind);
+                return;
+            }
+            oldItem.label = newLabel;
+            // Migrate profiles + overrides
+            const field = getTaxonomyDisplayField(kind);
+            const ovField = getTaxonomyOverrideField(kind);
+            fullData.forEach(p => { if (p[field] === oldLabel) p[field] = newLabel; });
+            Object.keys(savedOverrides).forEach(id => {
+                if (savedOverrides[id] && savedOverrides[id][ovField] === oldLabel) savedOverrides[id][ovField] = newLabel;
+            });
+            saveTaxonomy();
+            persistOverridesToServer();
+            renderTaxonomyList(kind);
+            applyFilters();
+            showToast('Renamed to "' + newLabel + '"');
+        };
+
+        window.deleteTaxonomyItem = function(kind, idx) {
+            const items = getTaxonomyItems(kind);
+            const target = items[idx];
+            if (!target) return;
+            if (items.length <= 1) { alert('Cannot delete the last option.'); return; }
+            const label = target.label;
+            const field = getTaxonomyDisplayField(kind);
+            const affected = fullData.filter(p => p[field] === label).length;
+            const fallbackItem = items[idx === 0 ? 1 : 0];
+            const fallback = fallbackItem.label;
+            const msg = affected > 0
+                ? `Delete "${label}"?\n${affected} profile${affected === 1 ? '' : 's'} currently use${affected === 1 ? 's' : ''} this value — they will be reassigned to "${fallback}".`
+                : `Delete "${label}"?`;
+            if (!confirm(msg)) return;
+            items.splice(idx, 1);
+            const ovField = getTaxonomyOverrideField(kind);
+            fullData.forEach(p => { if (p[field] === label) p[field] = fallback; });
+            Object.keys(savedOverrides).forEach(id => {
+                if (savedOverrides[id] && savedOverrides[id][ovField] === label) savedOverrides[id][ovField] = fallback;
+            });
+            saveTaxonomy();
+            persistOverridesToServer();
+            renderTaxonomyList(kind);
+            applyFilters();
+            showToast('Deleted "' + label + '"');
+        };
+
+        window.addTaxonomyItem = function(kind) {
+            const inputId = kind === 'seniority' ? 'newSeniorityInput' : 'newFunctionInput';
+            const input = document.getElementById(inputId);
+            const val = (input.value || '').trim();
+            if (!val) { input.focus(); return; }
+            const items = getTaxonomyItems(kind);
+            if (items.some(it => it.label === val)) {
+                alert('"' + val + '" already exists.');
+                input.select();
+                return;
+            }
+            items.push({ label: val, keywords: [] });
+            saveTaxonomy();
+            input.value = '';
+            renderTaxonomyList(kind);
+            applyFilters();
+            input.focus();
+            showToast('Added "' + val + '" — set keywords to auto-classify');
+        };
+
+        window.resetTaxonomy = function(kind) {
+            const defaults = kind === 'seniority' ? DEFAULT_SENIORITY_ITEMS : DEFAULT_FUNCTION_ITEMS;
+            if (!confirm(`Reset ${kind === 'seniority' ? 'Seniority' : 'Function'} options and keywords to defaults?\n\nExisting profile values that aren't in the defaults won't be changed — they'll just no longer appear in the dropdown.`)) return;
+            setTaxonomyItems(kind, defaults.map(d => ({ label: d.label, keywords: [...d.keywords] })));
+            saveTaxonomy();
+            reapplyAutoGuess(kind);
+            renderTaxonomyList(kind);
+            applyFilters();
+            showToast('Reset to defaults');
+        };
+
+        // ─── Apify Integration ───────────────────────────────────────
+        let _apifyPollTimer = null;
+        let _apifyUrlList = [];
+
+        function getApifyToken() {
+            return (localStorage.getItem('apify_api_token') || '').trim();
+        }
+
+        window.openApifyTokenModal = function() {
+            const token = getApifyToken();
+            const input = document.getElementById('apifyTokenInput');
+            const statusEl = document.getElementById('apifyTokenModalStatus');
+            input.value = '';
+            if (token) {
+                const masked = token.substring(0, 10) + '••••••••';
+                statusEl.innerHTML = `<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: #eafbf0; border-radius: var(--radius); font-size: 0.84rem;">
+                    <span style="color: #16a34a; font-weight: 500;">✓ Token connected (${masked})</span>
+                    <div style="display: flex; gap: 0.4rem; align-items: center;">
+                        <span style="font-size: 0.75rem; color: var(--text-tertiary);">Paste a new one below to replace</span>
+                        <button onclick="removeApifyToken()" class="action-btn" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; color: #e53e3e; border-color: #fed7d7;">Remove</button>
+                    </div>
+                </div>`;
+            } else {
+                statusEl.innerHTML = '';
+            }
+            document.getElementById('apifyTokenModal').style.display = 'flex';
+        };
+
+        window.removeApifyToken = function() {
+            localStorage.removeItem('apify_api_token');
+            document.getElementById('apifyTokenModal').style.display = 'none';
+            showToast('Apify token removed');
+            if (document.getElementById('emptyState').style.display !== 'none') {
+                showEmptyState();
+            }
+            if (typeof refreshRsvpTokenStatus === 'function') refreshRsvpTokenStatus();
+        };
+
+        window.saveApifyToken = function() {
+            const token = document.getElementById('apifyTokenInput').value.trim();
+            if (!token) {
+                alert('Please enter your Apify API token.');
+                return;
+            }
+            localStorage.setItem('apify_api_token', token);
+            document.getElementById('apifyTokenModal').style.display = 'none';
+            showToast('Apify token saved');
+            // Refresh empty state buttons if visible
+            if (document.getElementById('emptyState').style.display !== 'none') {
+                showEmptyState();
+            }
+            // If we were waiting to start a run, continue
+            if (_apifyUrlList.length > 0) {
+                startApifyRun(_apifyUrlList);
+            }
+        };
+
+        function refreshRsvpTokenStatus() {
+            const token = getApifyToken();
+            const statusEl = document.getElementById('rsvpTokenStatus');
+            const inputArea = document.getElementById('rsvpTokenInputArea');
+            const inputEl = document.getElementById('rsvpPageTokenInput');
+            if (!statusEl || !inputArea) return;
+
+            if (token) {
+                const masked = token.substring(0, 10) + '••••••••';
+                statusEl.innerHTML = `<div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 0.84rem; color: #16a34a; font-weight: 500;">✓ Token connected (${masked})</span>
+                    <button onclick="document.getElementById('rsvpTokenInputArea').style.display='block'; document.getElementById('rsvpPageTokenInput').focus();" class="action-btn" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Change</button>
+                </div>`;
+                inputArea.style.display = 'none';
+                inputEl.value = '';
+            } else {
+                statusEl.innerHTML = `<p style="font-size: 0.78rem; color: var(--text-tertiary); margin: 0 0 0.6rem;">
+                    Required to scrape LinkedIn profiles. Free account at <a href="https://apify.com" target="_blank" style="color: var(--accent);">apify.com</a> &rarr; Settings &rarr; Integrations. Uses your own credits.
+                </p>`;
+                inputArea.style.display = 'block';
+                inputEl.value = '';
+            }
+        }
+
+        window.sendToApify = function(urlList) {
+            _apifyUrlList = urlList;
+            const token = getApifyToken();
+            if (!token) {
+                openApifyTokenModal();
+                return;
+            }
+            startApifyRun(urlList);
+        };
+
+        let _apifyLog = [];
+
+        function apifyLog(msg, data) {
+            const ts = new Date().toLocaleTimeString();
+            const entry = { ts, msg, data };
+            _apifyLog.push(entry);
+            console.log(`[Apify ${ts}] ${msg}`, data !== undefined ? data : '');
+            renderApifyLog();
+        }
+
+        function renderApifyLog() {
+            const el = document.getElementById('apifyLogOutput');
+            if (!el) return;
+            el.innerHTML = _apifyLog.map(e => {
+                let line = `<span style="color: var(--text-tertiary);">${e.ts}</span> ${e.msg}`;
+                if (e.data !== undefined) {
+                    const json = typeof e.data === 'string' ? e.data : JSON.stringify(e.data, null, 2);
+                    if (json.length > 300) {
+                        line += `\n<span style="color: var(--text-tertiary);">${json.substring(0, 300)}…</span>`;
+                    } else {
+                        line += `\n<span style="color: var(--text-tertiary);">${json}</span>`;
+                    }
+                }
+                return line;
+            }).join('\n');
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function updateApifyProgress(steps, statusText) {
+            const stepsEl = document.getElementById('apifyProgressSteps');
+            const statusEl = document.getElementById('apifyProgressStatus');
+
+            const stepDefs = [
+                { label: 'Starting scrape', key: 'start' },
+                { label: 'Scraping profiles', key: 'scrape' },
+                { label: 'Fetching results', key: 'fetch' },
+                { label: 'Importing into database', key: 'import' },
+            ];
+
+            let html = '';
+            stepDefs.forEach((s, i) => {
+                const state = steps[s.key] || 'pending';
+                const icon = state === 'done' ? '✓' : state === 'active' ? '⟳' : state === 'error' ? '✕' : '·';
+                const color = state === 'done' ? '#16a34a' : state === 'active' ? 'var(--accent)' : state === 'error' ? '#e53e3e' : 'var(--text-tertiary)';
+                const weight = (state === 'active' || state === 'done') ? '600' : '400';
+                const anim = state === 'active' ? 'animation: pulse 1.8s infinite;' : '';
+                html += `<div style="display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0; font-size: 0.85rem; color: ${color}; font-weight: ${weight}; ${anim}">
+                    <span style="min-width: 20px; text-align: center; font-size: 0.9rem;">${icon}</span>
+                    <span>${s.label}</span>
+                </div>`;
+            });
+            stepsEl.innerHTML = html;
+            statusEl.innerText = statusText || '';
+        }
+
+        let _apifyRunId = null;
+        let _apifyDatasetId = null;
+        let _apifyUrlCount = 0;
+
+        async function startApifyRun(urlList) {
+            const token = getApifyToken();
+            if (!token) return;
+
+            _apifyLog = [];
+            _apifyRunId = null;
+            _apifyDatasetId = null;
+
+            const progressModal = document.getElementById('apifyProgressModal');
+            document.getElementById('apifyAbortBtn').style.display = 'inline-flex';
+            document.getElementById('apifyCloseBtn').style.display = 'none';
+            progressModal.style.display = 'flex';
+
+            const cleanUrls = urlList.map(u => u.trim()).filter(Boolean);
+            _apifyUrlCount = cleanUrls.length;
+            apifyLog(`Starting Apify scrape for ${cleanUrls.length} profiles (single run)`);
+            apifyLog('Sample URLs:', cleanUrls.slice(0, 5));
+            updateApifyProgress({ start: 'active' }, `Launching scrape for ${cleanUrls.length} profiles...`);
+
+            try {
+                // Normalize LinkedIn URLs
+                const normalizedUrls = cleanUrls.map(u => {
+                    u = u.replace('://linkedin.com/', '://www.linkedin.com/');
+                    if (!u.startsWith('http')) u = 'https://www.linkedin.com/in/' + u;
+                    return u;
+                });
+
+                const actorInput = JSON.stringify({
+                    profileScraperMode: 'Profile details no email ($4 per 1k)',
+                    queries: normalizedUrls
+                });
+                const startRes = await fetch(
+                    `https://api.apify.com/v2/acts/LpVuK3Zozwuipa5bp/runs?token=${encodeURIComponent(token)}`,
+                    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: actorInput }
+                );
+
+                apifyLog(`POST Apify runs → HTTP ${startRes.status}`);
+
+                if (startRes.status === 401 || startRes.status === 403) {
+                    apifyLog('ERROR: Invalid API token');
+                    updateApifyProgress({ start: 'error' }, 'Invalid API token. Update your token and try again.');
+                    document.getElementById('apifyAbortBtn').style.display = 'none';
+                    document.getElementById('apifyCloseBtn').style.display = 'inline-flex';
+                    localStorage.removeItem('apify_api_token');
+                    return;
+                }
+
+                if (!startRes.ok) {
+                    const errData = await startRes.json().catch(() => ({}));
+                    apifyLog('ERROR starting run:', errData);
+                    updateApifyProgress({ start: 'error' }, `Failed to start: ${errData.error || startRes.statusText}`);
+                    document.getElementById('apifyAbortBtn').style.display = 'none';
+                    document.getElementById('apifyCloseBtn').style.display = 'inline-flex';
+                    return;
+                }
+
+                const startJson = await startRes.json();
+                const runData = startJson.data || {};
+                _apifyRunId = runData.id;
+                _apifyDatasetId = runData.defaultDatasetId;
+
+                apifyLog(`Run started: runId=${_apifyRunId}, datasetId=${_apifyDatasetId}, status=${startData.status}`);
+                updateApifyProgress({ start: 'done', scrape: 'active' }, `Scraping ${cleanUrls.length} profiles...`);
+
+                pollApifyRunStatus();
+
+            } catch (err) {
+                apifyLog('ERROR starting run:', err.message);
+                updateApifyProgress({ start: 'error' }, `Network error: ${err.message}`);
+                document.getElementById('apifyAbortBtn').style.display = 'none';
+                document.getElementById('apifyCloseBtn').style.display = 'inline-flex';
+            }
+        }
+
+        async function pollApifyRunStatus() {
+            if (!_apifyRunId) return;
+            const token = getApifyToken();
+
+            try {
+                const res = await fetch(
+                    `https://api.apify.com/v2/actor-runs/${_apifyRunId}?token=${encodeURIComponent(token)}`
+                );
+                const data = await res.json();
+                const runStatus = data?.data?.status || 'UNKNOWN';
+
+                apifyLog(`Poll: status=${runStatus}`);
+
+                if (['SUCCEEDED'].includes(runStatus)) {
+                    updateApifyProgress({ start: 'done', scrape: 'done', fetch: 'active' }, 'Scraping complete! Fetching results...');
+                    fetchApifyResults();
+                } else if (['FAILED', 'TIMED-OUT', 'ABORTED'].includes(runStatus)) {
+                    apifyLog(`Run ended with status: ${runStatus}`);
+                    updateApifyProgress({ start: 'done', scrape: 'error' }, `Run ${runStatus.toLowerCase()}. Check log.`);
+                    document.getElementById('apifyAbortBtn').style.display = 'none';
+                    document.getElementById('apifyCloseBtn').style.display = 'inline-flex';
+                } else {
+                    // Still running
+                    updateApifyProgress({ start: 'done', scrape: 'active' }, `Scraping ${_apifyUrlCount} profiles... (${runStatus})`);
+                    _apifyPollTimer = setTimeout(pollApifyRunStatus, 5000);
+                }
+
+            } catch (err) {
+                apifyLog('Poll error (retrying):', err.message);
+                _apifyPollTimer = setTimeout(pollApifyRunStatus, 8000);
+            }
+        }
+
+        async function fetchApifyResults() {
+            const token = getApifyToken();
+            try {
+                const res = await fetch(
+                    `https://api.apify.com/v2/datasets/${_apifyDatasetId}/items?format=json&clean=true&token=${encodeURIComponent(token)}`
+                );
+
+                apifyLog(`GET Apify dataset → HTTP ${res.status}`);
+
+                const resultData = await res.json();
+                const profiles = Array.isArray(resultData) ? resultData
+                    : (resultData.data?.items || resultData.data || []);
+                const diag = null;
+
+                apifyLog(`Got ${profiles.length} profiles`);
+
+                apifyLog(`Got ${profiles.length} profiles total`);
+
+                if (!Array.isArray(profiles) || profiles.length === 0) {
+                    apifyLog('WARNING: No profiles in results');
+                    if (diag) apifyLog('Full diagnostics:', diag);
+                    updateApifyProgress({ start: 'done', scrape: 'done', fetch: 'error' }, 'No profile data returned. Check log.');
+                    document.getElementById('apifyAbortBtn').style.display = 'none';
+                    document.getElementById('apifyCloseBtn').style.display = 'inline-flex';
+                    return;
+                }
+
+                apifyLog('First profile keys:', Object.keys(profiles[0]));
+                apifyLog('First profile sample:', profiles[0]);
+
+                updateApifyProgress({ start: 'done', scrape: 'done', fetch: 'done', import: 'active' }, `Importing ${profiles.length} profiles...`);
+
+                const added = await idbMergeProfiles(profiles);
+                const uploadData = { added };
+                apifyLog('Merged result:', uploadData);
+
+                const failMsg = '';
+                updateApifyProgress(
+                    { start: 'done', scrape: 'done', fetch: 'done', import: 'done' },
+                    `Done! Added ${uploadData.added} new profiles${failMsg}. Reloading...`
+                );
+
+                document.getElementById('apifyAbortBtn').style.display = 'none';
+                document.getElementById('apifyCloseBtn').style.display = 'inline-flex';
+
+                setTimeout(() => location.reload(), 1500);
+
+            } catch (err) {
+                apifyLog('ERROR fetching results:', err.message);
+                updateApifyProgress({ start: 'done', scrape: 'done', fetch: 'error' }, `Error: ${err.message}`);
+                document.getElementById('apifyAbortBtn').style.display = 'none';
+                document.getElementById('apifyCloseBtn').style.display = 'inline-flex';
+            }
+        }
+
+        window.abortApifyRun = async function() {
+            if (!_apifyRunId) return;
+            if (_apifyPollTimer) clearTimeout(_apifyPollTimer);
+
+            const token = getApifyToken();
+            try {
+                await fetch(
+                    `https://api.apify.com/v2/actor-runs/${_apifyRunId}/abort?token=${encodeURIComponent(getApifyToken())}`,
+                    { method: 'POST' }
+                );
+            } catch(e) { /* ignore */ }
+
+            updateApifyProgress({ start: 'done', scrape: 'error' }, 'Run aborted.');
+            document.getElementById('apifyAbortBtn').style.display = 'none';
+            document.getElementById('apifyCloseBtn').style.display = 'inline-flex';
+            _apifyRunId = null;
+        };
+        
+        window.setFilter = function(type, value) {
+            // Toggle: if same filter, clear it
+            if (activeFilter && activeFilter.type === type && activeFilter.value === value) {
+                activeFilter = null;
+            } else if (type && value) {
+                activeFilter = { type, value };
+            } else {
+                activeFilter = null;
+            }
+
+            // Find the dietary column key if needed
+            let dietaryKey = null;
+            if (type === 'Dietary') {
+                dietaryKey = columnConfig.find(c =>
+                    (c.id.startsWith('Do you have any dietary restrictions') || c.id.includes('dietary')) && c.id
+                )?.id || null;
+            }
+
+            // Update the column filter DOM elements
+            document.querySelectorAll('.col-filter').forEach(el => {
+                const key = el.dataset.filter;
+                if (!key) return;
+
+                // Clear this filter if it's being toggled off
+                if (!activeFilter) {
+                    if (el.tagName === 'SELECT') {
+                        el.selectedIndex = 0;
+                    } else {
+                        el.value = '';
+                        const wrap = el.closest('.col-filter-wrap');
+                        if (wrap) wrap.classList.remove('has-value');
+                    }
+                    return;
+                }
+
+                // Set this filter if it matches the active filter
+                const isActive = (
+                    (type === 'Seniority' && key === 'seniority') ||
+                    (type === 'Function' && key === 'function') ||
+                    (type === 'Status' && key === 'status') ||
+                    (type === 'Dietary' && dietaryKey && key === 'answer:' + dietaryKey)
+                );
+
+                if (isActive) {
+                    if (el.tagName === 'SELECT') {
+                        el.value = value;
+                    } else {
+                        el.value = value;
+                        const wrap = el.closest('.col-filter-wrap');
+                        if (wrap) wrap.classList.toggle('has-value', !!value);
+                    }
+                }
+            });
+
+            applyFilters();
+        };
+
+        // savedOverrides stores changes keyed by profile id
+        let savedOverrides = JSON.parse(localStorage.getItem('linkedin_overrides') || '{}');
+
+        // ─── IndexedDB helpers (replaces server-side file storage) ───────────
+        const _IDB_NAME = 'luma_rsvp';
+        const _IDB_STORE = 'kv';
+        function _openDb() {
+            return new Promise((res, rej) => {
+                const req = indexedDB.open(_IDB_NAME, 1);
+                req.onupgradeneeded = e => {
+                    if (!e.target.result.objectStoreNames.contains(_IDB_STORE))
+                        e.target.result.createObjectStore(_IDB_STORE);
+                };
+                req.onsuccess = e => res(e.target.result);
+                req.onerror  = e => rej(e.target.error);
+            });
+        }
+        async function idbGet(key) {
+            const db = await _openDb();
+            return new Promise((res, rej) => {
+                const req = db.transaction(_IDB_STORE, 'readonly').objectStore(_IDB_STORE).get(key);
+                req.onsuccess = e => res(e.target.result);
+                req.onerror  = e => rej(e.target.error);
+            });
+        }
+        async function idbPut(key, value) {
+            const db = await _openDb();
+            return new Promise((res, rej) => {
+                const req = db.transaction(_IDB_STORE, 'readwrite').objectStore(_IDB_STORE).put(value, key);
+                req.onsuccess = () => res();
+                req.onerror  = e => rej(e.target.error);
+            });
+        }
+        async function idbDelete(key) {
+            const db = await _openDb();
+            return new Promise((res, rej) => {
+                const req = db.transaction(_IDB_STORE, 'readwrite').objectStore(_IDB_STORE).delete(key);
+                req.onsuccess = () => res();
+                req.onerror  = e => rej(e.target.error);
+            });
+        }
+        async function idbMergeProfiles(newProfiles) {
+            const existing = await idbGet('profiles') || [];
+            const existingUrls = new Set(existing.map(p => p.linkedinUrl).filter(Boolean));
+            let added = 0;
+            for (const p of newProfiles) {
+                if (p.linkedinUrl && existingUrls.has(p.linkedinUrl)) continue;
+                existing.push(p);
+                if (p.linkedinUrl) existingUrls.add(p.linkedinUrl);
+                added++;
+            }
+            await idbPut('profiles', existing);
+            return added;
+        }
+        
+        // Chart instances
+        let seniorityChartInstance = null;
+        let functionChartInstance = null;
+        
+        // Each item: { label, keywords: [] }. Items with empty keywords act as the fallback.
+        // Matching direction: bottom-to-top. Drag higher-priority (more specific) rules to the bottom.
+        const DEFAULT_SENIORITY_ITEMS = [
+            { label: 'Mid',       keywords: [] },
+            { label: 'Senior',    keywords: ['senior', 'sr.', ' sr '] },
+            { label: 'Lead',      keywords: ['lead'] },
+            { label: 'Staff',     keywords: ['staff'] },
+            { label: 'Principal', keywords: ['principal'] },
+            { label: 'Manager',   keywords: ['manager', 'head of'] },
+            { label: 'Director',  keywords: ['director'] },
+            { label: 'VP',        keywords: ['vp', 'vice president'] },
+            { label: 'CDO',       keywords: ['cdo', 'chief'] },
+        ];
+        const DEFAULT_FUNCTION_ITEMS = [
+            { label: 'Other',             keywords: [] },
+            { label: 'Recruiter',         keywords: ['recruit', 'talent'] },
+            { label: 'Creative Director', keywords: ['creative director'] },
+            { label: 'Content Designer',  keywords: ['content design', 'content writer', 'ux writer'] },
+            { label: 'Engineer',          keywords: ['engineer', 'developer'] },
+            { label: 'Product Manager',   keywords: ['product manager', ' pm ', 'product lead'] },
+            { label: 'Researcher',        keywords: ['research'] },
+            { label: 'Designer',          keywords: ['design', ' ui', ' ux'] },
+        ];
+        const STATUS_LEVELS = ['Not Reviewed', 'Accept', 'Not sure', 'Reject'];
+
+        function loadTaxonomyItems(storageKey, legacyKey, defaults) {
+            // New format: array of {label, keywords}
+            try {
+                const raw = JSON.parse(localStorage.getItem(storageKey) || 'null');
+                if (Array.isArray(raw) && raw.length && raw[0] && typeof raw[0] === 'object' && 'label' in raw[0]) {
+                    return raw.map(it => ({ label: String(it.label || ''), keywords: Array.isArray(it.keywords) ? it.keywords.map(String) : [] }))
+                              .filter(it => it.label);
+                }
+            } catch(e) {}
+            // Migrate legacy format (array of strings)
+            try {
+                const legacy = JSON.parse(localStorage.getItem(legacyKey) || 'null');
+                if (Array.isArray(legacy) && legacy.length) {
+                    const kwMap = Object.fromEntries(defaults.map(d => [d.label, d.keywords]));
+                    return legacy.map(label => ({ label: String(label), keywords: kwMap[label] ? [...kwMap[label]] : [] }));
+                }
+            } catch(e) {}
+            return defaults.map(d => ({ label: d.label, keywords: [...d.keywords] }));
+        }
+
+        let SENIORITY_ITEMS = loadTaxonomyItems('seniority_items', 'seniority_levels', DEFAULT_SENIORITY_ITEMS);
+        let FUNCTION_ITEMS  = loadTaxonomyItems('function_items',  'function_roles',  DEFAULT_FUNCTION_ITEMS);
+
+        // Derived label arrays (used by dropdowns + filters throughout the app).
+        let SENIORITY_LEVELS = SENIORITY_ITEMS.map(it => it.label);
+        let FUNCTION_ROLES   = FUNCTION_ITEMS.map(it => it.label);
+
+        function syncDerivedLabels() {
+            SENIORITY_LEVELS = SENIORITY_ITEMS.map(it => it.label);
+            FUNCTION_ROLES   = FUNCTION_ITEMS.map(it => it.label);
+        }
+
+        async function init() {
+            loadColumnConfig();
+            bindUploads();
+
+            // Restore saved event title
+            const savedTitle = localStorage.getItem('eventTitle');
+            if (savedTitle) {
+                document.getElementById('eventTitle').innerText = savedTitle;
+            }
+
+            try {
+                const rawData = await idbGet('profiles') || [];
+
+                if (!Array.isArray(rawData) || rawData.length === 0) {
+                    showEmptyState();
+                    return;
+                }
+
+                // Pre-process data
+                fullData = rawData.map((p, i) => processProfile(p, i));
+
+                // Sort by alphabetical first name
+                fullData.sort((a, b) => {
+                    const nameA = (a.firstName || a.displayName || '').toLowerCase();
+                    const nameB = (b.firstName || b.displayName || '').toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+
+                renderTable(fullData);
+                renderAnalytics(fullData);
+            } catch (error) {
+                console.error("Failed to load dataset:", error);
+                showEmptyState();
+            }
+        }
+
+        function showEmptyState() {
+            document.getElementById('updateRsvpsBtn').style.display = 'none';
+            document.getElementById('tableWrapper').style.display = 'none';
+            document.getElementById('chartsSection').style.display = 'none';
+            document.getElementById('statusFilterBar').style.display = 'none';
+            const nextBtn = document.getElementById('nextUncheckedBtn');
+            if (nextBtn) nextBtn.style.display = 'none';
+
+            const emptyEl = document.getElementById('emptyState');
+            const actionsEl = document.getElementById('emptyStateActions');
+            const hasToken = !!getApifyToken();
+
+            let html = '';
+            if (!hasToken) {
+                html += `<button class="empty-state-btn empty-state-btn-secondary" onclick="openApifyTokenModal()">🔑 Add Apify Token</button>`;
+            } else {
+                html += `<button class="empty-state-btn empty-state-btn-primary" id="emptyStateLoadRsvpsBtn">Load RSVPs</button>`;
+            }
+            actionsEl.innerHTML = html;
+
+            // Bind the load RSVPs button in empty state
+            const loadBtn = document.getElementById('emptyStateLoadRsvpsBtn');
+            if (loadBtn) {
+                loadBtn.addEventListener('click', () => {
+                    document.getElementById('loadRsvpsBtn').click();
+                });
+            }
+
+            emptyEl.style.display = 'flex';
+        }
+
+        function bindUploads() {
+            document.getElementById('manageColumnsBtn').addEventListener('click', openColumnManager);
+            document.getElementById('updateRsvpsBtn').addEventListener('click', () => {
+                document.getElementById('loadRsvpsBtn').click();
+            });
+
+            document.getElementById('clearDbBtn').addEventListener('click', () => {
+                const input = document.getElementById('clearDbConfirmInput');
+                const btn = document.getElementById('clearDbConfirmBtn');
+                input.value = '';
+                btn.disabled = true;
+                btn.style.opacity = '0.4';
+                document.getElementById('clearDbModal').style.display = 'flex';
+                setTimeout(() => input.focus(), 100);
+            });
+
+            window.closeClearDbModal = function() {
+                document.getElementById('clearDbModal').style.display = 'none';
+            };
+
+            window.executeClearDb = async function() {
+                const btn = document.getElementById('clearDbConfirmBtn');
+                btn.disabled = true;
+                btn.textContent = 'Clearing...';
+                try {
+                    await idbDelete('profiles');
+                    localStorage.removeItem('linkedin_overrides');
+                    localStorage.removeItem('columnConfig');
+                    savedOverrides = {};
+                    btn.textContent = 'Done. Reloading...';
+                    setTimeout(() => location.reload(), 800);
+                } catch (err) {
+                    btn.textContent = 'Error: ' + err.message;
+                    setTimeout(() => { btn.textContent = 'Delete Everything'; btn.disabled = false; btn.style.opacity = '1'; }, 2000);
+                }
+            };
+
+            const blockImagesToggle = document.getElementById('blockExternalImagesToggle');
+            if (blockImagesToggle) {
+                blockImagesToggle.addEventListener('change', () => {
+                    const searchInput = document.getElementById('searchInput');
+                    if (searchInput && searchInput.value) {
+                        searchInput.dispatchEvent(new Event('input'));
+                    } else {
+                        renderTable(fullData);
+                    }
+                });
+            }
+            
+            document.getElementById('saveDbBtn').addEventListener('click', () => {
+                const state = { overrides: savedOverrides, dataset: fullData };
+                const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `event_profiles_state_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+            document.getElementById('loadDbBtn').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    try {
+                        document.body.style.opacity = '0.5';
+                        const state = JSON.parse(ev.target.result);
+                        if (!state.dataset || !state.overrides) {
+                            throw new Error("Invalid state file format. Make sure it contains 'dataset' and 'overrides'.");
+                        }
+                        await idbPut('profiles', state.dataset);
+                        localStorage.setItem('linkedin_overrides', JSON.stringify(state.overrides));
+                        alert("Database State successfully restored!");
+                        location.reload();
+                    } catch (err) {
+                        alert('Load State Failed: ' + err.message);
+                        document.body.style.opacity = '1';
+                    }
+                    e.target.value = '';
+                };
+                reader.readAsText(file);
+            });
+
+            // Unified "Load RSVPs" button
+            document.getElementById('loadRsvpsBtn').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Always update event title from CSV filename
+                let name = file.name.replace(/\.csv$/i, '');
+                // Strip common Luma suffixes like " - Guests - 2026-03-30-20-15-58"
+                name = name.replace(/\s*-\s*Guests\s*-\s*\d{4}-\d{2}-\d{2}.*$/, '');
+                // Strip "Untitled spreadsheet - " prefix if present
+                name = name.replace(/^Untitled spreadsheet\s*-\s*/i, '');
+                // Replace underscores with colons for better readability
+                name = name.replace(/_/g, ':');
+                name = name.trim();
+                if (name) {
+                    const titleEl = document.getElementById('eventTitle');
+                    titleEl.innerText = name;
+                    localStorage.setItem('eventTitle', name);
+                }
+
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    const text = ev.target.result;
+                    const rows = parseCsvText(text);
+                    if (rows.length < 2) { alert('CSV has no data rows.'); e.target.value = ''; return; }
+                    const headers = rows[0];
+                    window._csvRows = rows;
+                    window._csvHeaders = headers;
+                    showColumnPickerModal(headers, rows);
+                    e.target.value = '';
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        window.exportAnonymized = function() {
+            // Anonymize data: replace names with initials, remove dietary info
+            const anonymizedData = fullData.map(p => {
+                const copy = { ...p };
+                const firstInit = copy.firstName ? copy.firstName.charAt(0).toUpperCase() : '';
+                const lastInit = copy.lastName ? copy.lastName.charAt(0).toUpperCase() : '';
+                copy.displayName = firstInit + lastInit || 'N/A';
+                copy.firstName = firstInit;
+                copy.lastName = lastInit;
+                if (copy.profilePicture) copy.profilePicture = { url: '' };
+                return copy;
+            });
+
+            const eventTitle = document.getElementById('eventTitle').innerText;
+            const safeTitle = eventTitle.replace(/'/g, "\\'");
+
+            // Build HTML using string concatenation to avoid template literal escaping issues
+            let html = '<!DOCTYPE html>\n<html lang="en">\n<head>\n';
+            html += '    <meta charset="UTF-8">\n';
+            html += '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n';
+            html += '    <title>' + safeTitle + '</title>\n';
+            html += '    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">\n';
+            html += '    <style>\n';
+            html += '        :root { --bg: #ffffff; --surface: #ffffff; --text: #1e1e1e; --text-secondary: #555555; --text-tertiary: #999999; --border: #e0e0e0; --border-hover: #c0c0c0; --accent: #f06449; --accent-hover: #d94e35; --highlight: #f7f7f7; --radius: 6px; }\n';
+            html += '        * { box-sizing: border-box; }\n';
+            html += '        body { margin: 0; padding: 0; font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }\n';
+            html += '        .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem 2rem; }\n';
+            html += '        h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 1.5rem; color: var(--text); letter-spacing: -0.02em; }\n';
+            html += '        .status-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; font-size: 0.85rem; font-weight: 500; }\n';
+            html += '        .status-counts { display: flex; gap: 1.5rem; }\n';
+            html += '        .status-counts div { cursor: pointer; }\n';
+            html += '        .accept { color: #16a34a; }\n';
+            html += '        .not-sure { color: #d97706; }\n';
+            html += '        .reject { color: #e53e3e; }\n';
+            html += '        .charts { display: flex; gap: 1.25rem; margin-bottom: 1.5rem; flex-wrap: wrap; }\n';
+            html += '        .chart-card { flex: 1; min-width: 300px; max-width: 400px; background: var(--surface); padding: 1rem; border-radius: var(--radius); border: 1px solid var(--border); }\n';
+            html += '        .chart-card h2 { font-size: 0.75rem; color: var(--text-tertiary); margin: 0 0 0.75rem; text-align: center; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }\n';
+            html += '        .chart-container { height: 250px; position: relative; }\n';
+            html += '        .table-wrapper { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; -webkit-overflow-scrolling: touch; }\n';
+            html += '        table { width: 100%; border-collapse: collapse; text-align: left; min-width: 900px; }\n';
+            html += '        th, td { padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border); vertical-align: middle; }\n';
+            html += '        th { background: var(--highlight); font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.06em; }\n';
+            html += '        tr { background-color: var(--surface); }\n';
+            html += '        tr.status-Accept > td:nth-child(3) { background-color: #eafbf0; }\n';
+            html += '        tr.status-Reject > td:nth-child(3) { background-color: #fdeeed; }\n';
+            html += '        tr.status-Not-sure > td:nth-child(3) { background-color: #fff8e6; }\n';
+            html += '        .initials { width: 36px; height: 36px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-weight: 600; color: #f06449; font-size: 0.9rem; flex-shrink: 0; }\n';
+            html += '        .title-cell { font-size: 0.85rem; color: var(--text-secondary); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n';
+            html += '        @media (max-width: 768px) {\n';
+            html += '            .container { padding: 1rem; }\n';
+            html += '            h1 { font-size: 1.25rem; margin-bottom: 1rem; }\n';
+            html += '            .status-bar { flex-direction: column; align-items: flex-start; gap: 0.75rem; }\n';
+            html += '            .status-counts { flex-wrap: wrap; gap: 1rem; }\n';
+            html += '            .charts { flex-direction: column; }\n';
+            html += '            .chart-card { min-width: 100%; max-width: 100%; }\n';
+            html += '            .chart-container { height: 200px; }\n';
+            html += '            th, td { padding: 0.5rem 0.75rem; font-size: 0.8rem; }\n';
+            html += '            .initials { width: 30px; height: 30px; font-size: 0.8rem; }\n';
+            html += '            .title-cell { max-width: 150px; font-size: 0.75rem; }\n';
+            html += '        }\n';
+            html += '    </style>\n';
+            html += '    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer><\/script>\n';
+            html += '</head>\n<body>\n';
+            html += '    <div class="container">\n';
+            html += '        <h1>' + safeTitle + '</h1>\n';
+            html += '        <div class="status-bar">\n';
+            html += '            <div class="status-counts">\n';
+            html += '                <div class="accept">Accept <span id="countAccept">0</span></div>\n';
+            html += '                <div class="not-sure">??? <span id="countNotSure">0</span></div>\n';
+            html += '                <div class="reject">Reject <span id="countReject">0</span></div>\n';
+            html += '            </div>\n';
+            html += '        </div>\n';
+            html += '        <div class="charts">\n';
+            html += '            <div class="chart-card">\n';
+            html += '                <h2>Seniority Breakdown</h2>\n';
+            html += '                <div class="chart-container"><canvas id="seniorityChart"></canvas></div>\n';
+            html += '            </div>\n';
+            html += '            <div class="chart-card">\n';
+            html += '                <h2>Function Breakdown</h2>\n';
+            html += '                <div class="chart-container"><canvas id="functionChart"></canvas></div>\n';
+            html += '            </div>\n';
+            html += '        </div>\n';
+            html += '        <div class="table-wrapper">\n';
+            html += '            <table id="dataTable"><thead><tr>\n';
+            html += '                <th>Profile</th>\n';
+            html += '                <th>Title</th>\n';
+            html += '                <th>Status</th>\n';
+            html += '                <th>Seniority</th>\n';
+            html += '                <th>Function</th>\n';
+            html += '                <th>Current Company</th>\n';
+            html += '                <th>Previous Company</th>\n';
+            html += '            </tr></thead><tbody id="tableBody"></tbody></table>\n';
+            html += '        </div>\n';
+            html += '    </div>\n';
+            html += '    <script>\n';
+            html += '        const DATA = ' + JSON.stringify(anonymizedData) + ';\n\n';
+            html += '        function getStatus(status) { return status || "Not Reviewed"; }\n\n';
+            html += '        function getSeniority(title) {\n';
+            html += '            const t = (title || "").toLowerCase();\n';
+            html += '            if (t.includes("cdo") || t.includes("chief")) return "CDO";\n';
+            html += '            if (t.includes("vp") || t.includes("vice president")) return "VP";\n';
+            html += '            if (t.includes("director")) return "Director";\n';
+            html += '            if (t.includes("manager")) return "Manager";\n';
+            html += '            if (t.includes("principal")) return "Principal";\n';
+            html += '            if (t.includes("staff")) return "Staff";\n';
+            html += '            if (t.includes("lead")) return "Lead";\n';
+            html += '            if (t.includes("senior") || t.includes("sr")) return "Senior";\n';
+            html += '            return "Mid";\n';
+            html += '        }\n\n';
+            html += '        function getFunction(title) {\n';
+            html += '            const t = (title || "").toLowerCase();\n';
+            html += '            if (t.includes("research")) return "Researcher";\n';
+            html += '            if (t.includes("product") && t.includes("manager")) return "Product Manager";\n';
+            html += '            if (t.includes("content") && (t.includes("design") || t.includes("writer"))) return "Content Designer";\n';
+            html += '            if (t.includes("creative") && t.includes("director")) return "Creative Director";\n';
+            html += '            if (t.includes("design") || t.includes("ui") || t.includes("ux")) return "Designer";\n';
+            html += '            if (t.includes("engineer") || t.includes("developer")) return "Engineer";\n';
+            html += '            if (t.includes("recruit") || t.includes("talent")) return "Recruiter";\n';
+            html += '            return "Other";\n';
+            html += '        }\n\n';
+            html += '        function getCompany(profile) {\n';
+            html += '            if (!profile.experience || profile.experience.length === 0) return "N/A";\n';
+            html += '            const currentJobs = profile.experience.filter(exp => !exp.endDate);\n';
+            html += '            if (currentJobs.length > 0) return currentJobs[0].companyName || "N/A";\n';
+            html += '            return profile.experience[0].companyName || "N/A";\n';
+            html += '        }\n\n';
+            html += '        function getPreviousCompany(profile) {\n';
+            html += '            if (!profile.experience || profile.experience.length === 0) return "N/A";\n';
+            html += '            const currentJobs = profile.experience.filter(exp => !exp.endDate);\n';
+            html += '            const pastJobs = profile.experience.filter(exp => exp.endDate);\n';
+            html += '            if (currentJobs.length > 0 && pastJobs.length > 0) return pastJobs[0].companyName || "N/A";\n';
+            html += '            if (profile.experience.length > 1) return profile.experience[1].companyName || "N/A";\n';
+            html += '            return "N/A";\n';
+            html += '        }\n\n';
+            html += '        function renderTable() {\n';
+            html += '            const tbody = document.getElementById("tableBody");\n';
+            html += '            tbody.innerHTML = "";\n';
+            html += '            DATA.forEach(function(profile) {\n';
+            html += '                const status = getStatus(profile.displayStatus);\n';
+            html += '                const title = profile.displayTitle || profile.headline || "N/A";\n';
+            html += '                const seniority = profile.displaySeniority || "N/A";\n';
+            html += '                const func = profile.displayFunction || "N/A";\n';
+            html += '                const currentCo = profile.displayCurrentCompany || getCompany(profile);\n';
+            html += '                const prevCo = profile.displayPreviousCompany || getPreviousCompany(profile);\n';
+            html += '                const initials = profile.displayName || "N/A";\n';
+            html += '                const tr = document.createElement("tr");\n';
+            html += '                tr.className = "status-" + status.replace(" ", "-");\n';
+            html += '                tr.innerHTML = "<td><div class=\\"initials\\">" + initials + "</div></td>" +\n';
+            html += '                    "<td class=\\"title-cell\\">" + title + "</td>" +\n';
+            html += '                    "<td>" + status + "</td>" +\n';
+            html += '                    "<td>" + seniority + "</td>" +\n';
+            html += '                    "<td>" + func + "</td>" +\n';
+            html += '                    "<td>" + currentCo + "</td>" +\n';
+            html += '                    "<td>" + prevCo + "</td>";\n';
+            html += '                tbody.appendChild(tr);\n';
+            html += '            });\n';
+            html += '        }\n\n';
+            html += '        function renderAnalytics() {\n';
+            html += '            let acceptCount = 0, rejectCount = 0, notSureCount = 0;\n';
+            html += '            const senCounts = {}, funcCounts = {};\n';
+            html += '            DATA.forEach(function(p) {\n';
+            html += '                const status = getStatus(p.displayStatus);\n';
+            html += '                if (status === "Accept") acceptCount++;\n';
+            html += '                else if (status === "Reject") rejectCount++;\n';
+            html += '                else if (status === "Not sure") notSureCount++;\n';
+            html += '                if (status === "Reject" || status === "Not sure") return;\n';
+            html += '                let sen = p.displaySeniority || "N/A";\n';
+            html += '                if (["Lead", "Staff", "Principal"].includes(sen)) sen = "Lead/Staff/Principal";\n';
+            html += '                else if (["Director", "VP", "CDO"].includes(sen)) sen = "Executives";\n';
+            html += '                const func = p.displayFunction || "N/A";\n';
+            html += '                senCounts[sen] = (senCounts[sen] || 0) + 1;\n';
+            html += '                funcCounts[func] = (funcCounts[func] || 0) + 1;\n';
+            html += '            });\n';
+            html += '            document.getElementById("countAccept").textContent = acceptCount;\n';
+            html += '            document.getElementById("countNotSure").textContent = notSureCount;\n';
+            html += '            document.getElementById("countReject").textContent = rejectCount;\n';
+            html += '            const isMobile = window.innerWidth <= 768;\n';
+            html += '            const createPie = function(canvasId, countsObj, palette) {\n';
+            html += '                const labels = Object.keys(countsObj).filter(function(k) { return countsObj[k] > 0; });\n';
+            html += '                const dataVals = labels.map(function(l) { return countsObj[l]; });\n';
+            html += '                const total = dataVals.reduce(function(a,b) { return a+b; }, 0);\n';
+            html += '                const ctx = document.getElementById(canvasId).getContext("2d");\n';
+            html += '                new Chart(ctx, {\n';
+            html += '                    type: "doughnut",\n';
+            html += '                    data: {\n';
+            html += '                        labels: labels,\n';
+            html += '                        datasets: [{\n';
+            html += '                            data: dataVals,\n';
+            html += '                            backgroundColor: palette,\n';
+            html += '                            borderWidth: 2,\n';
+            html += '                            borderColor: "#ffffff"\n';
+            html += '                        }]\n';
+            html += '                    },\n';
+            html += '                    options: {\n';
+            html += '                        responsive: true,\n';
+            html += '                        maintainAspectRatio: false,\n';
+            html += '                        plugins: {\n';
+            html += '                            legend: {\n';
+            html += '                                position: isMobile ? "bottom" : "right",\n';
+            html += '                                labels: {\n';
+            html += '                                    color: "#555555",\n';
+            html += '                                    font: {family: "Inter", size: isMobile ? 11 : 13, weight: 500},\n';
+            html += '                                    boxWidth: isMobile ? 15 : 20,\n';
+            html += '                                    padding: isMobile ? 10 : 20,\n';
+            html += '                                    generateLabels: function(chart) {\n';
+            html += '                                        return labels.map(function(label, i) {\n';
+            html += '                                            const val = dataVals[i];\n';
+            html += '                                            const pct = total > 0 ? Math.round((val / total) * 100) : 0;\n';
+            html += '                                            return {\n';
+            html += '                                                text: label + " - " + val + " (" + pct + "%)",\n';
+            html += '                                                fillStyle: palette[i],\n';
+            html += '                                                hidden: false,\n';
+            html += '                                                index: i\n';
+            html += '                                            };\n';
+            html += '                                        });\n';
+            html += '                                    }\n';
+            html += '                                }\n';
+            html += '                            },\n';
+            html += '                            tooltip: {\n';
+            html += '                                callbacks: {\n';
+            html += '                                    label: function(context) {\n';
+            html += '                                        const val = context.raw;\n';
+            html += '                                        const percentage = total > 0 ? Math.round((val / total) * 100) + "%" : "0%";\n';
+            html += '                                        return " " + val + " (" + percentage + ")";\n';
+            html += '                                    }\n';
+            html += '                                }\n';
+            html += '                            }\n';
+            html += '                        }\n';
+            html += '                    }\n';
+            html += '                });\n';
+            html += '            };\n';
+            html += '            createPie("seniorityChart", senCounts, ["#22c55e", "#f97316", "#8b5cf6", "#eab308", "#06b6d4", "#ec4899"]);\n';
+            html += '            createPie("functionChart", funcCounts, ["#06b6d4", "#f97316", "#22c55e", "#8b5cf6", "#eab308", "#ec4899"]);\n';
+            html += '        }\n';
+            html += '        window.addEventListener("load", function() {\n';
+            html += '            if (typeof Chart === "undefined") {\n';
+            html += '                console.error("Chart.js failed to load");\n';
+            html += '                return;\n';
+            html += '            }\n';
+            html += '            renderTable();\n';
+            html += '            renderAnalytics();\n';
+            html += '        });\n';
+            html += '    <\/script>\n';
+            html += '</body>\n</html>';
+
+            // Create and download the file
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = safeTitle.replace(/[^a-z0-9]/gi, '_') + '_anonymized.html';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast('Anonymized export created! Upload this file to GitHub Pages or any web host.');
+        };
+
+        window.exportBuildingSecurityCSV = function() {
+            const rows = [['Name', 'Email']];
+            fullData.filter(p => p.displayStatus === 'Accept').forEach(p => {
+                const name = ((p.firstName || '') + ' ' + (p.lastName || '')).trim() || p.displayName || '';
+                const email = savedOverrides[p.uniqueId]?.answers?.email
+                    || savedOverrides[p.uniqueId]?.answers?.Email
+                    || '';
+                rows.push([name, email]);
+            });
+
+            const csvContent = rows.map(r => r.map(cell => {
+                const str = String(cell ?? '');
+                return (str.includes(',') || str.includes('"') || str.includes('\n'))
+                    ? '"' + str.replace(/"/g, '""') + '"'
+                    : str;
+            }).join(',')).join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const eventTitle = document.getElementById('eventTitle').innerText || 'event';
+            a.href = url;
+            a.download = eventTitle + ' - Building Security.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Building Security CSV exported!');
+        };
+
+        // Shared CSV parser
+        function parseCsvText(text, trimCells = true) {
+            const rows = [];
+            let currentRow = [];
+            let currentCell = '';
+            let inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i+1];
+                if (char === '"' && inQuotes && nextChar === '"') {
+                    currentCell += '"'; i++;
+                } else if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    currentRow.push(trimCells ? currentCell.trim() : currentCell); currentCell = '';
+                } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                    if (char === '\r' && nextChar === '\n') i++;
+                    currentRow.push(trimCells ? currentCell.trim() : currentCell); rows.push(currentRow);
+                    currentRow = []; currentCell = '';
+                } else {
+                    currentCell += char;
+                }
+            }
+            if (currentCell !== '' || currentRow.length > 0) {
+                currentRow.push(trimCells ? currentCell.trim() : currentCell); rows.push(currentRow);
+            }
+            return rows;
+        }
+
+        function showColumnPickerModal(headers, rows) {
+            const skipPatterns = ['terms and conditions'];
+            const hiddenPatterns = ['first_name', 'last_name', 'first name', 'last name', 'name', 'full name', 'ticket_name', 'ticket name'];
+            const linkedinPatterns = ['linkedin'];
+
+            // Normalize helper: replace underscores with spaces for comparison
+            const normalizeKey = (s) => s.toLowerCase().replace(/_/g, ' ');
+
+            // Build column cards for grid layout — skip hidden columns entirely
+            let cardsHtml = '';
+            headers.forEach((h, idx) => {
+                const hNorm = normalizeKey(h);
+                const isHidden = hiddenPatterns.some(p => normalizeKey(p) === hNorm);
+                if (isHidden) return; // skip hidden columns
+
+                const isLinkedin = linkedinPatterns.some(p => h.toLowerCase().includes(p));
+                const isSkip = skipPatterns.some(p => h.toLowerCase().includes(p));
+                if (isSkip) return; // skip terms/columns like T&C
+
+                const samples = [];
+                for (let r = 1; r < Math.min(rows.length, 4); r++) {
+                    if (rows[r][idx]) samples.push(rows[r][idx]);
+                }
+                const samplesHtml = samples.length > 0
+                    ? samples.map(s => `<div style="padding: 0.25rem 0.45rem; background: var(--highlight); border-radius: 4px; font-size: 0.76rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${s.replace(/"/g, '&quot;')}">${s.length > 35 ? s.substring(0, 35) + '…' : s}</div>`).join('')
+                    : '<div style="font-size: 0.76rem; color: var(--text-tertiary); font-style: italic;">No data</div>';
+
+                const label = isLinkedin ? 'Sent to Apify for scraping' : 'Imported automatically. Check to show in table.';
+
+                cardsHtml += `
+                <div style="border: 1px solid var(--border); border-radius: var(--radius); padding: 0.7rem; transition: all 0.15s;">
+                    <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; margin-bottom: 0.45rem;">
+                        <input type="checkbox" data-col-idx="${idx}" class="col-picker-cb" style="margin-top: 2px; accent-color: #f06449; cursor: pointer;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.82rem; color: var(--text); line-height: 1.3;">${h.length > 35 ? h.substring(0, 35) + '…' : h}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 2px;">${label}</div>
+                        </div>
+                    </label>
+                    <div style="display: flex; flex-direction: column; gap: 3px;">
+                        ${samplesHtml}
+                    </div>
+                </div>`;
+            });
+
+            // Count LinkedIn URLs
+            const liColIdx = headers.findIndex(h => h.toLowerCase().includes('linkedin'));
+            let liUrlCount = 0;
+            if (liColIdx !== -1) {
+                for (let r = 1; r < rows.length; r++) {
+                    if (rows[r][liColIdx] && rows[r][liColIdx].trim()) liUrlCount++;
+                }
+            }
+
+            // Populate the page
+            document.getElementById('rsvpColGrid').innerHTML = cardsHtml;
+            refreshRsvpTokenStatus();
+
+            // Scrape info bar
+            let scrapeInfoHtml = '';
+            if (liColIdx !== -1) {
+                scrapeInfoHtml = `
+                <div style="background: var(--highlight); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="font-size: 0.84rem;">
+                        <strong>${liUrlCount}</strong> LinkedIn URLs found. Profiles will be scraped via Apify.
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; white-space: nowrap;">
+                        <input type="checkbox" id="onlyNewProfilesCb" checked style="accent-color: #f06449; cursor: pointer;">
+                        Only new profiles
+                    </label>
+                </div>`;
+            } else {
+                scrapeInfoHtml = `
+                <div style="background: #fff8e6; border: 1px solid #fde68a; border-radius: var(--radius); padding: 0.75rem 1rem; font-size: 0.84rem; color: #92400e;">
+                    No LinkedIn column found. Columns will be imported but no profiles will be scraped.
+                </div>`;
+            }
+            document.getElementById('rsvpScrapeInfo').innerHTML = scrapeInfoHtml;
+
+            // Update button text
+            if (liColIdx !== -1) {
+                const costEst = (liUrlCount / 1000 * 4).toFixed(2);
+                document.getElementById('rsvpImportBtn').innerHTML = `Import &amp; Scrape <span style="font-weight: 400; opacity: 0.85; margin-left: 4px;">(~$${costEst})</span>`;
+                document.getElementById('rsvpImportOnlyBtn').style.display = '';
+            } else {
+                document.getElementById('rsvpImportBtn').innerHTML = 'Import Columns';
+                document.getElementById('rsvpImportOnlyBtn').style.display = 'none';
+            }
+
+            // Show the page
+            document.getElementById('loadRsvpsPage').style.display = 'block';
+        }
+
+        window.closeLoadRsvpsPage = function() {
+            document.getElementById('loadRsvpsPage').style.display = 'none';
+            window._csvRows = null;
+            window._csvHeaders = null;
+        };
+
+        // Import columns only — no Apify scraping. Creates stub profiles for unmatched rows.
+        async function importColumnsOnly() {
+            const rows = window._csvRows;
+            const headers = window._csvHeaders;
+            if (!rows || !headers) return;
+
+            const visibleCols = [];
+            document.querySelectorAll('.col-picker-cb:checked').forEach(cb => {
+                visibleCols.push(parseInt(cb.dataset.colIdx));
+            });
+
+            // Detect name/linkedin columns for stub creation
+            const fnIdx = headers.findIndex(h => h.toLowerCase() === 'first name');
+            const lnIdx = headers.findIndex(h => h.toLowerCase() === 'last name');
+            const nameIdx = headers.findIndex(h => h.toLowerCase() === 'name' || h.toLowerCase() === 'full name');
+            const liIdx = headers.findIndex(h => h.toLowerCase().includes('linkedin'));
+
+            // Import all columns into existing profiles + register visibility
+            const importResult = matchAndImportColumns(rows, headers, visibleCols);
+
+            // Create stub profiles for unmatched rows
+            const newStubs = [];
+            const existingLiIds = new Set();
+            const existingNames = new Set();
+            fullData.forEach(p => {
+                const liId = (p.publicIdentifier || '').toLowerCase();
+                if (liId) existingLiIds.add(liId);
+                const liUrl = p.linkedinUrl || p.linkedInUrl || '';
+                const m = liUrl.match(/in\/([^\/\?]+)/);
+                if (m) existingLiIds.add(m[1].toLowerCase());
+                const name = ((p.firstName || '') + ' ' + (p.lastName || '')).toLowerCase().trim();
+                if (name) existingNames.add(name);
+            });
+
+            for (let i = 0; i < importResult.unmatchedNames.length; i++) {
+                const csvIdx = importResult.unmatchedIndices ? importResult.unmatchedIndices[i] : -1;
+                const row = csvIdx >= 0 ? rows[csvIdx] : null;
+
+                let firstName = '', lastName = '', linkedinUrl = '';
+                if (row) {
+                    if (fnIdx !== -1) firstName = row[fnIdx] || '';
+                    if (lnIdx !== -1) lastName = row[lnIdx] || '';
+                    if (!firstName && !lastName && nameIdx !== -1 && row[nameIdx]) {
+                        const parts = row[nameIdx].trim().split(/\s+/);
+                        firstName = parts[0] || '';
+                        lastName = parts.slice(1).join(' ') || '';
+                    }
+                    if (liIdx !== -1 && row[liIdx]) linkedinUrl = row[liIdx].trim();
+                } else {
+                    const parts = importResult.unmatchedNames[i].split(' ');
+                    firstName = parts[0] || '';
+                    lastName = parts.slice(1).join(' ') || '';
+                }
+
+                // Skip if already exists by LinkedIn ID
+                if (linkedinUrl) {
+                    const m = linkedinUrl.match(/in\/([^\/\?]+)/);
+                    if (m && existingLiIds.has(m[1].toLowerCase())) continue;
+                }
+                // Skip if exact name already exists
+                const fullName = (firstName + ' ' + lastName).toLowerCase().trim();
+                if (existingNames.has(fullName)) continue;
+
+                const stubId = linkedinUrl
+                    ? linkedinUrl.match(/in\/([^\/\?]+)/)?.[1] || ('csv_' + Date.now() + '_' + i)
+                    : ('csv_' + Date.now() + '_' + i);
+
+                const stub = {
+                    publicIdentifier: stubId,
+                    linkedinUrl: linkedinUrl,
+                    firstName: firstName,
+                    lastName: lastName,
+                    headline: '',
+                    experience: [],
+                    _isCsvStub: true
+                };
+
+                // Collect all non-system columns as answers for the stub
+                if (row) {
+                    const answers = {};
+                    for (let c = 0; c < headers.length; c++) {
+                        if (c < row.length && row[c]) {
+                            const hLower = headers[c].toLowerCase();
+                            const isSystem = ['first name', 'last name', 'name', 'full name', 'ticket name'].some(p => hLower.replace(/_/g, ' ') === p) || hLower.includes('linkedin');
+                            if (!isSystem) answers[headers[c]] = row[c];
+                        }
+                    }
+                    if (Object.keys(answers).length > 0) {
+                        savedOverrides[stubId] = { answers };
+                    }
+                }
+
+                newStubs.push(stub);
+                existingLiIds.add(stubId.toLowerCase());
+                existingNames.add(fullName);
+            }
+
+            // Save overrides (including stub answers)
+            localStorage.setItem('linkedin_overrides', JSON.stringify(savedOverrides));
+
+            // Merge stubs into IndexedDB
+            if (newStubs.length > 0) {
+                await idbMergeProfiles(newStubs);
+            }
+
+            let msg = '';
+            if (importResult.matchCount > 0) msg += `Updated ${importResult.matchCount} existing profiles`;
+            if (newStubs.length > 0) msg += `${msg ? ', ' : ''}Added ${newStubs.length} new records`;
+            if (!msg) msg = 'No changes made.';
+            showToast(msg);
+
+            closeLoadRsvpsPage();
+            setTimeout(() => location.reload(), 800);
+        }
+
+        // Unified import + scrape function
+        async function importColumnsAndScrape() {
+            const rows = window._csvRows;
+            const headers = window._csvHeaders;
+            if (!rows || !headers) return;            // Get visible column indices (checked = show in table)
+            const visibleCols = [];
+            document.querySelectorAll('.col-picker-cb:checked').forEach(cb => {
+                visibleCols.push(parseInt(cb.dataset.colIdx));
+            });
+
+            const onlyNew = document.getElementById('onlyNewProfilesCb')?.checked ?? true;
+
+            // Auto-save token from page input if present
+            const pageToken = document.getElementById('rsvpPageTokenInput')?.value?.trim();
+            if (pageToken) localStorage.setItem('apify_api_token', pageToken);
+
+            // ── Step 1: Import all columns (match against existing DB) ──
+            const importResult = matchAndImportColumns(rows, headers, visibleCols);
+            if (importResult.matchCount > 0) {
+                localStorage.setItem('linkedin_overrides', JSON.stringify(savedOverrides));
+                let msg = `Imported data for ${importResult.matchCount} profiles`;
+                if (importResult.unmatchedNames.length > 0) {
+                    msg += ` (${importResult.unmatchedNames.length} unmatched)`;
+                    console.warn('Unmatched CSV names:', importResult.unmatchedNames);
+                }
+                showToast(msg);
+                applyFilters();
+            }
+
+            // ── Step 2: Extract LinkedIn URLs from CSV ──
+            const liColIdx = headers.findIndex(h => h.toLowerCase().includes('linkedin'));
+            document.getElementById('loadRsvpsPage').style.display = 'none';
+
+            if (liColIdx === -1) {
+                // No LinkedIn column — we're done (columns imported above)
+                window._csvRows = null;
+                window._csvHeaders = null;
+                closeLoadRsvpsPage();
+                setTimeout(() => location.reload(), 800);
+                return;
+            }
+
+            // Build set of existing profile IDs for "only new" filtering
+            const existingIds = new Set();
+            if (onlyNew) {
+                fullData.forEach(p => {
+                    let pId = p.publicIdentifier;
+                    if (!pId && p.linkedinUrl) {
+                        const match = p.linkedinUrl.match(/in\/([^\/\?]+)/);
+                        if (match) pId = match[1];
+                    }
+                    if (pId) existingIds.add(pId.toLowerCase());
+                });
+            }
+
+            const urls = [];
+            for (let i = 1; i < rows.length; i++) {
+                if (liColIdx < rows[i].length) {
+                    const url = (rows[i][liColIdx] || '').trim();
+                    if (!url) continue;
+                    if (onlyNew) {
+                        const match = url.match(/in\/([^\/\?]+)/);
+                        const idCheck = match ? match[1].toLowerCase() : url.toLowerCase();
+                        if (existingIds.has(idCheck)) continue;
+                    }
+                    urls.push(url);
+                }
+            }
+
+            window._csvRows = null;
+            window._csvHeaders = null;
+
+            if (urls.length === 0) {
+                showToast(onlyNew ? 'No new LinkedIn profiles to scrape.' : 'No LinkedIn URLs found in CSV.');
+                return;
+            }
+
+            // ── Step 3: Send to Apify ──
+            sendToApify(urls);
+        }
+
+        // Name matching + column import logic
+        // visibleColIndices: columns the user checked (to show in table). All non-system columns are imported regardless.
+        function matchAndImportColumns(rows, headers, visibleColIndices) {
+            // Normalize helper for matching column names
+            const norm = (s) => s.toLowerCase().replace(/_/g, ' ');
+
+            let fnIdx = headers.findIndex(h => norm(h) === 'first name');
+            let lnIdx = headers.findIndex(h => norm(h) === 'last name');
+            let nameIdx = headers.findIndex(h => ['name', 'full name', 'ticket name'].includes(norm(h)));
+            let emailIdx = headers.findIndex(h => h.toLowerCase().includes('email'));
+            let liIdx = headers.findIndex(h => h.toLowerCase().includes('linkedin'));
+
+            const hiddenPatterns = ['first name', 'last name', 'name', 'full name', 'ticket name'];
+            const linkedinPatterns = ['linkedin'];
+            const systemIndices = new Set();
+            headers.forEach((h, idx) => {
+                const hNorm = norm(h);
+                if (hiddenPatterns.some(p => hNorm === p)) systemIndices.add(idx);
+                if (linkedinPatterns.some(p => hNorm.includes(p))) systemIndices.add(idx);
+            });
+
+            // Import all non-system columns
+            const importCols = [];
+            for (let i = 0; i < headers.length; i++) {
+                if (!systemIndices.has(i)) importCols.push(i);
+            }
+
+            // Register imported columns in columnConfig (visible or hidden)
+            const visibleSet = new Set(visibleColIndices);
+            importCols.forEach(colIdx => {
+                const colId = headers[colIdx];
+                const existing = columnConfig.find(c => c.id === colId);
+                if (!existing) {
+                    const isDietary = colId.startsWith('Do you have any dietary restrictions') || colId.includes('dietary');
+                    columnConfig.push({
+                        id: colId,
+                        label: isDietary ? 'Dietary' : colId,
+                        type: 'answer',
+                        visible: visibleSet.has(colIdx)
+                    });
+                } else {
+                    // If re-imported and user checked it, make it visible
+                    if (visibleSet.has(colIdx)) existing.visible = true;
+                }
+            });
+            saveColumnConfig();
+
+            const normalizeName = (s) => (s || '').toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9 ]/g, ' ')
+                .replace(/\s+/g, ' ').trim();
+
+            const extractLiId = (url) => {
+                if (!url) return '';
+                const m = url.match(/linkedin\.com\/in\/([^\/\?\s]+)/i);
+                return m ? m[1].toLowerCase() : '';
+            };
+
+            const profilesByLiId = new Map();
+            const profilesByEmail = new Map();
+            const profilesByExactName = new Map();
+            const profilesByNormName = new Map();
+
+            fullData.forEach(p => {
+                const liId = extractLiId(p.linkedinUrl || p.linkedInUrl);
+                if (liId) profilesByLiId.set(liId, p);
+                if (p.publicIdentifier) profilesByLiId.set(p.publicIdentifier.toLowerCase(), p);
+
+                const pEmail = (savedOverrides[p.uniqueId]?.answers?.email || savedOverrides[p.uniqueId]?.answers?.Email || '').toLowerCase().trim();
+                if (pEmail) profilesByEmail.set(pEmail, p);
+
+                const exactName = ((p.firstName || '') + ' ' + (p.lastName || '')).toLowerCase().trim();
+                if (exactName) profilesByExactName.set(exactName, p);
+                const dName = (p.displayName || '').toLowerCase().trim();
+                if (dName && dName !== exactName) profilesByExactName.set(dName, p);
+
+                const normName = normalizeName((p.firstName || '') + ' ' + (p.lastName || ''));
+                if (normName) profilesByNormName.set(normName, p);
+                const normDName = normalizeName(p.displayName);
+                if (normDName && normDName !== normName) profilesByNormName.set(normDName, p);
+
+                const sortedParts = normName.split(' ').sort().join(' ');
+                if (sortedParts !== normName) profilesByNormName.set(sortedParts, p);
+            });
+
+            let matchCount = 0;
+            let unmatchedNames = [];
+            let unmatchedIndices = [];
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                let matchedProfile = null;
+
+                if (!matchedProfile && liIdx !== -1 && row[liIdx]) {
+                    const csvLiId = extractLiId(row[liIdx]);
+                    if (csvLiId) matchedProfile = profilesByLiId.get(csvLiId);
+                }
+                if (!matchedProfile && emailIdx !== -1 && row[emailIdx]) {
+                    const csvEmail = row[emailIdx].toLowerCase().trim();
+                    if (csvEmail) matchedProfile = profilesByEmail.get(csvEmail);
+                }
+
+                let searchName = '';
+                if (fnIdx !== -1 && row[fnIdx]) searchName += row[fnIdx] + ' ';
+                if (lnIdx !== -1 && row[lnIdx]) searchName += row[lnIdx];
+                if (fnIdx === -1 && lnIdx === -1 && nameIdx !== -1 && row[nameIdx]) searchName = row[nameIdx];
+                searchName = searchName.trim();
+
+                if (!matchedProfile && searchName) {
+                    matchedProfile = profilesByExactName.get(searchName.toLowerCase());
+                }
+                if (!matchedProfile && searchName) {
+                    const norm = normalizeName(searchName);
+                    matchedProfile = profilesByNormName.get(norm);
+                    if (!matchedProfile) {
+                        const sortedParts = norm.split(' ').sort().join(' ');
+                        matchedProfile = profilesByNormName.get(sortedParts);
+                    }
+                }
+                if (!matchedProfile && searchName) {
+                    const csvFirst = normalizeName(fnIdx !== -1 ? row[fnIdx] : searchName.split(' ')[0]);
+                    if (csvFirst) {
+                        const candidates = fullData.filter(p => normalizeName(p.firstName) === csvFirst);
+                        if (candidates.length === 1) matchedProfile = candidates[0];
+                    }
+                }
+
+                if (matchedProfile) {
+                    let answers = {};
+                    importCols.forEach(c => {
+                        if (c < row.length && row[c]) answers[headers[c]] = row[c];
+                    });
+                    if (Object.keys(answers).length > 0) {
+                        if (!savedOverrides[matchedProfile.uniqueId]) savedOverrides[matchedProfile.uniqueId] = {};
+                        savedOverrides[matchedProfile.uniqueId].answers = {
+                            ...(savedOverrides[matchedProfile.uniqueId].answers || {}),
+                            ...answers
+                        };
+                        matchCount++;
+                    }
+                } else if (searchName) {
+                    unmatchedNames.push(searchName);
+                    unmatchedIndices.push(i);
+                }
+            }
+
+            return { matchCount, unmatchedNames, unmatchedIndices };
+        }
+
+        // bindExtractUrls removed — unified into "Load RSVPs" flow
+
+        // Generic keyword-based classifier. Iterates BOTTOM-to-TOP so higher-priority (more
+        // specific) rules placed at the bottom win over broader rules at the top. Items with
+        // empty keywords are skipped as matchers and used as the fallback.
+        function classifyByItems(title, items) {
+            const t = (' ' + (title || '') + ' ').toLowerCase();
+            for (let i = items.length - 1; i >= 0; i--) {
+                const it = items[i];
+                if (!it.keywords || it.keywords.length === 0) continue;
+                for (const kw of it.keywords) {
+                    const k = String(kw || '').trim().toLowerCase();
+                    if (k && t.includes(k)) return it.label;
+                }
+            }
+            // Fallback: first item with empty keywords, else last item, else first.
+            const fallback = items.find(it => !it.keywords || it.keywords.length === 0);
+            if (fallback) return fallback.label;
+            return (items[items.length - 1] || items[0] || { label: '' }).label;
+        }
+
+        function guessSeniority(title) { return classifyByItems(title, SENIORITY_ITEMS); }
+        function guessFunction(title)  { return classifyByItems(title, FUNCTION_ITEMS);  }
+
+        function processProfile(profile, index) {
+            const id = profile.publicIdentifier || profile.linkedinUrl || ('profile_' + index);
+            profile.uniqueId = id.toString();
+            
+            // Extract raw data from JSON
+            let currentTitle = 'N/A';
+            let currentCompany = 'N/A';
+            let previousCompany = 'N/A';
+            
+            if (profile.experience && profile.experience.length > 0) {
+                const currentJobs = profile.experience.filter(exp => !exp.endDate);
+                const pastJobs = profile.experience.filter(exp => exp.endDate);
+                
+                if (currentJobs.length > 0) {
+                    currentTitle = currentJobs[0].position || 'N/A';
+                    currentCompany = currentJobs[0].companyName || 'N/A';
+                    previousCompany = pastJobs.length > 0 ? pastJobs[0].companyName : 'N/A';
+                } else {
+                    currentTitle = profile.experience[0].position || 'N/A';
+                    currentCompany = profile.experience[0].companyName || 'N/A';
+                    previousCompany = profile.experience.length > 1 ? profile.experience[1].companyName : 'N/A';
+                }
+            } else {
+                 if (profile.currentPosition && profile.currentPosition.length > 0) {
+                     currentCompany = profile.currentPosition[0].companyName || 'N/A';
+                     currentTitle = profile.headline || 'N/A';
+                 }
+            }
+
+            profile.rawTitle = currentTitle;
+            
+            // Merge with saved overrides
+            const overrides = savedOverrides[id] || {};
+            
+            let baseName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+            if (!baseName) {
+                let liUrl = profile.linkedinUrl || profile.linkedInUrl || '';
+                let username = '';
+                if (liUrl) {
+                    try {
+                        const parts = liUrl.split('linkedin.com/in/');
+                        if (parts.length > 1) {
+                            username = parts[1].split('/')[0].split('?')[0];
+                        }
+                    } catch(e) {}
+                }
+                baseName = username ? `N/A - ${username}` : 'N/A';
+            }
+            
+            profile.displayName = overrides.name !== undefined ? overrides.name : baseName;
+            profile.displayTitle = currentTitle;
+            profile.displayCurrentCompany = overrides.currentCompany !== undefined ? overrides.currentCompany : currentCompany;
+            profile.displayPreviousCompany = overrides.previousCompany !== undefined ? overrides.previousCompany : previousCompany;
+            
+            // Auto calculate if no override
+            profile.displaySeniority = overrides.seniority || guessSeniority(overrides.currentCompany !== undefined ? overrides.currentCompany : currentTitle);
+            profile.displayFunction = overrides.func || guessFunction(overrides.currentCompany !== undefined ? overrides.currentCompany : currentTitle);
+            profile.displayStatus = overrides.status || 'Not Reviewed';
+            
+            return profile;
+        }
+
+        function renderAnalytics(data) {
+            let acceptCount = 0;
+            let rejectCount = 0;
+            let notSureCount = 0;
+            
+            const senCounts = {};
+            const funcCounts = {};
+            const dietCounts = {};
+            
+            data.forEach(p => {
+                if (p.displayStatus === 'Accept') acceptCount++;
+                else if (p.displayStatus === 'Reject') rejectCount++;
+                else if (p.displayStatus === 'Not sure') notSureCount++;
+                
+                // Do not count rejected or not-sure people in the charts
+                if (p.displayStatus === 'Reject' || p.displayStatus === 'Not sure') return;
+                
+                let sen = p.displaySeniority;
+                if (['Lead', 'Staff', 'Principal'].includes(sen)) {
+                    sen = 'Lead/Staff/Principal';
+                } else if (['Director', 'VP', 'CDO'].includes(sen)) {
+                    sen = 'Executives';
+                }
+                
+                const func = p.displayFunction;
+                senCounts[sen] = (senCounts[sen] || 0) + 1;
+                funcCounts[func] = (funcCounts[func] || 0) + 1;
+
+                let answers = savedOverrides[p.uniqueId]?.answers || {};
+                let dietRaw = answers["Do you have any dietary restrictions or preferences? Please select all that apply."] || "Not specified";
+                let diets = dietRaw.split(',').map(d => d.trim()).filter(Boolean);
+                if (diets.length === 0) diets = ["Not specified"];
+                diets.forEach(d => {
+                    let diet = d;
+                    const dLower = diet.toLowerCase();
+                    if (dLower === 'none' || dLower === 'not specified' || dLower === 'none specified') {
+                        diet = 'None';
+                    }
+                    dietCounts[diet] = (dietCounts[diet] || 0) + 1;
+                });
+            });
+            
+            const seniorityOrder = ['mid', 'senior', 'manager', 'lead/staff/principal', 'executives'];
+            
+            const createPie = (canvasId, countsObj, chartInstanceRef, palette, isSeniority = false, filterType = 'Function') => {
+                let baseLabels = Object.keys(countsObj).filter(k => countsObj[k] > 0);
+                
+                if (isSeniority) {
+                    baseLabels.sort((a,b) => {
+                        let idxA = seniorityOrder.findIndex(s => a.toLowerCase().includes(s));
+                        let idxB = seniorityOrder.findIndex(s => b.toLowerCase().includes(s));
+                        if (idxA === -1 && idxB === -1) return countsObj[b] - countsObj[a];
+                        if (idxA === -1) return 1;
+                        if (idxB === -1) return -1;
+                        return idxA - idxB;
+                    });
+                } else {
+                    baseLabels.sort((a,b) => countsObj[b] - countsObj[a]);
+                }
+                const dataVals = baseLabels.map(l => countsObj[l]);
+                const total = dataVals.reduce((a,b) => a+b, 0);
+                
+                const legendLabels = baseLabels.map((l, i) => {
+                    const percentage = total > 0 ? Math.round((dataVals[i] / total) * 100) : 0;
+                    let text = l;
+                    if (text.length > 18) text = text.substring(0, 18) + '...';
+                    return `${percentage}% - ${text} (${dataVals[i]})`;
+                });
+                
+                if (chartInstanceRef) {
+                    chartInstanceRef.destroy();
+                }
+                
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                const newChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: legendLabels,
+                        datasets: [{
+                            data: dataVals,
+                            backgroundColor: palette,
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        onClick: (event, elements, chart) => {
+                            if (elements.length > 0) {
+                                const i = elements[0].index;
+                                const clickedVal = baseLabels[i];
+                                setFilter(filterType, clickedVal);
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { color: '#555555', font: {family: 'Inter', size: 13, weight: 500}, boxWidth: 20 },
+                                onClick: (event, legendItem, legend) => {
+                                    const index = legendItem.index;
+                                    const clickedVal = baseLabels[index];
+                                    setFilter(filterType, clickedVal);
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        let originalLabel = baseLabels[context[0].dataIndex];
+                                        let words = originalLabel.split(' ');
+                                        let lines = [];
+                                        let currentLine = '';
+                                        for(let w of words) {
+                                            if((currentLine + w).length > 35) {
+                                                lines.push(currentLine.trim());
+                                                currentLine = '';
+                                            }
+                                            currentLine += w + ' ';
+                                        }
+                                        if(currentLine) lines.push(currentLine.trim());
+                                        return lines;
+                                    },
+                                    label: function(context) {
+                                        let val = context.raw;
+                                        let percentage = total > 0 ? Math.round((val / total) * 100) + '%' : '0%';
+                                        return ` Count: ${val} (${percentage})`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                return newChart;
+            };
+
+            // Palettes — bright cheerful tones
+            const p1 = ['#22c55e', '#f97316', '#8b5cf6', '#eab308', '#06b6d4', '#ec4899', '#14b8a6', '#f43f5e', '#a3a3a3'];
+            const p2 = ['#06b6d4', '#f97316', '#22c55e', '#8b5cf6', '#eab308', '#ec4899', '#14b8a6', '#f43f5e', '#a3a3a3'];
+            
+            seniorityChartInstance = createPie('seniorityChart', senCounts, seniorityChartInstance, p1, true, 'Seniority');
+            functionChartInstance = createPie('functionChart', funcCounts, functionChartInstance, p2, false, 'Function');
+            
+            const dietLabels = Object.keys(dietCounts).filter(k => dietCounts[k] > 0);
+            dietLabels.sort((a,b) => dietCounts[b] - dietCounts[a]);
+            const dietTotal = dietLabels.reduce((a,b) => a + dietCounts[b], 0);
+            const dietStatsHtml = dietLabels.map(l => {
+                const percentage = dietTotal > 0 ? Math.round((dietCounts[l] / dietTotal) * 100) : 0;
+                const isActive = activeFilter && activeFilter.type === 'Dietary' && activeFilter.value === l;
+                return `<div onclick="setFilter('Dietary', '${l.replace(/'/g, "\\'")}')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.5rem; font-size: 0.82rem; transition: all 0.12s; color: #1e1e1e; border-radius: 4px; margin-bottom: 2px; ${isActive ? 'background: #f7f7f7; font-weight: 600;' : ''}" onmouseover="if(!${isActive}) this.style.background='#f7f7f7'" onmouseout="if(!${isActive}) this.style.background='transparent'">
+                    <span style="font-weight: ${isActive ? '600' : '400'};"><span style="color: #f06449; min-width: 36px; display: inline-block; font-weight: 600; font-variant-numeric: tabular-nums;">${percentage}%</span> ${l}</span>
+                    <span style="color: #999999; font-variant-numeric: tabular-nums; font-size: 0.8rem;">${dietCounts[l]}</span>
+                </div>`;
+            }).join('');
+            
+            const dietStatsEl = document.getElementById('dietStats');
+            if (dietStatsEl) dietStatsEl.innerHTML = dietStatsHtml;
+
+            const accEl = document.getElementById('countAccept');
+            if(accEl) accEl.innerText = acceptCount;
+            const notEl = document.getElementById('countNotSure');
+            if(notEl) notEl.innerText = notSureCount;
+            const rejEl = document.getElementById('countReject');
+            if(rejEl) rejEl.innerText = rejectCount;
+        }
+
+        function showToast(msg = 'Changes Saved') {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // Exposed globally for inline event handlers
+        window.updateField = async function(id, field, value) {
+            if (!savedOverrides[id]) savedOverrides[id] = {};
+            savedOverrides[id][field] = value.trim();
+            
+            localStorage.setItem('linkedin_overrides', JSON.stringify(savedOverrides));
+            
+            // Update the memory object so search and analytics reflex instantly
+            const profile = fullData.find(p => p.uniqueId === id);
+            if(profile) {
+                if(field === 'name') profile.displayName = value;
+                if(field === 'currentCompany') profile.displayCurrentCompany = value;
+                if(field === 'previousCompany') profile.displayPreviousCompany = value;
+                if(field === 'seniority') profile.displaySeniority = value;
+                if(field === 'func') profile.displayFunction = value;
+                if(field === 'status') profile.displayStatus = value;
+            }
+            
+            renderAnalytics(fullData);
+            showToast();
+        };
+
+        window.viewAnswers = function(encodedAnswers) {
+            try {
+                const answers = JSON.parse(decodeURIComponent(encodedAnswers));
+                let html = "<h3 style='margin-top: 0;'>Questionnaire Answers</h3>";
+                html += "<div style='text-align: left; max-height: 300px; overflow-y: auto; padding: 0 0.5rem; color: #1e1e1e;'>";
+                for(let q in answers) {
+                    html += `<div style="margin-bottom: 1rem;"><strong style="color: #555555; font-size: 0.82em; display: block; margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.03em;">${q}</strong><span style="color: #1e1e1e;">${answers[q]}</span></div>`;
+                }
+                html += "</div>";
+                html += `<div style="display: flex; justify-content: flex-end; margin-top: 1rem;"><button onclick="document.getElementById('answersModal').style.display='none'" class="modal-btn btn-cancel">Close</button></div>`;
+
+                const modal = document.getElementById('answersModal');
+                document.getElementById('answersModalContent').innerHTML = html;
+                modal.style.display = 'flex';
+            } catch(e) {
+                console.error("Error viewing answers:", e);
+            }
+        };
+
+        function renderTable(data) {
+            // Save current column filter values before rebuilding thead
+            const savedFilterValues = {};
+            document.querySelectorAll('.col-filter').forEach(el => {
+                if (el.value) savedFilterValues[el.dataset.filter] = el.value;
+            });
+
+            // Save focused element and cursor position to restore after rebuild
+            const activeElement = document.activeElement;
+            const focusedFilterKey = activeElement?.classList?.contains('col-filter') ? activeElement.dataset.filter : null;
+            const cursorPosition = (focusedFilterKey && activeElement.tagName === 'INPUT') ? activeElement.selectionStart : null;
+
+            // Build column config if needed
+            buildColumnConfig();
+
+            // Get visible columns in order (core columns always first, then answer columns)
+            const visibleCols = columnConfig.filter(c => c.visible);
+            visibleCols.sort((a, b) => {
+                if (a.type === 'core' && b.type !== 'core') return -1;
+                if (a.type !== 'core' && b.type === 'core') return 1;
+                // Within same type, preserve original config order
+                const aIdx = columnConfig.indexOf(a);
+                const bIdx = columnConfig.indexOf(b);
+                return aIdx - bIdx;
+            });
+
+            // Rebuild headers
+            const tableHead = document.querySelector('#dataTable thead');
+            let headerHtml = `
+                <tr>
+                    <th style="width: 32px; padding: 0 0.15rem 0 0.5rem; text-align: center;"><input type="checkbox" id="selectAllCheck" onchange="toggleAllRows(this.checked)"></th>
+                    <th style="min-width: 200px;">Profile</th>
+                    <th style="min-width: 160px;">Title</th>
+            `;
+            visibleCols.forEach(col => {
+                if (col.type === 'core') {
+                    headerHtml += `<th>${col.label}</th>`;
+                } else {
+                    let isDietary = col.id.startsWith('Do you have any dietary restrictions') || col.id.includes('dietary');
+                    let cellWidth = isDietary ? '200px' : '300px';
+                    headerHtml += `<th class="answer-col" title="${col.id.replace(/"/g, '&quot;')}" style="max-width: ${cellWidth}; min-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${col.label}</th>`;
+                }
+            });
+            headerHtml += `</tr>`;
+
+            // Filter row
+            const textFilterStyle = `width:100%;box-sizing:border-box;padding:0.3rem 0.5rem;padding-right:1.4rem;border:1px solid var(--border);border-radius:4px;font-family:Inter,sans-serif;font-size:0.75rem;outline:none;background:var(--surface);color:var(--text)`;
+            const selectFilterStyle = `width:100%;box-sizing:border-box;padding:0.3rem 0.4rem;border:1px solid var(--border);border-radius:4px;font-family:Inter,sans-serif;font-size:0.75rem;outline:none;background:var(--surface);color:var(--text);cursor:pointer`;
+
+            const clearableInput = (filterKey) =>
+                `<div class="col-filter-wrap"><input type="text" class="col-filter" data-filter="${filterKey}" placeholder="Search..." style="${textFilterStyle}" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" oninput="this.parentElement.classList.toggle('has-value',this.value.length>0)"><button class="col-filter-clear" onclick="const i=this.previousElementSibling;i.value='';i.dispatchEvent(new Event('input'));this.parentElement.classList.remove('has-value');">✕</button></div>`;
+
+            headerHtml += `<tr class="filter-row">`;
+            // Empty cell for checkbox column
+            headerHtml += `<th style="padding: 0.35rem 0.15rem;"></th>`;
+            // Profile column filter
+            headerHtml += `<th>${clearableInput('profile')}</th>`;
+            // Title column filter
+            headerHtml += `<th>${clearableInput('title')}</th>`;
+            visibleCols.forEach(col => {
+                if (col.type === 'core') {
+                    if (col.id === 'status') {
+                        headerHtml += `<th><select class="col-filter" data-filter="status" style="${selectFilterStyle}" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"><option value="">All</option>${STATUS_LEVELS.filter(s => s !== 'Not Reviewed').map(s => `<option value="${s}">${s}</option>`).join('')}</select></th>`;
+                    } else if (col.id === 'seniority') {
+                        headerHtml += `<th><select class="col-filter" data-filter="seniority" style="${selectFilterStyle}" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"><option value="">All</option>${SENIORITY_LEVELS.map(s => `<option value="${s}">${s}</option>`).join('')}</select></th>`;
+                    } else if (col.id === 'function') {
+                        headerHtml += `<th><select class="col-filter" data-filter="function" style="${selectFilterStyle}" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"><option value="">All</option>${FUNCTION_ROLES.map(s => `<option value="${s}">${s}</option>`).join('')}</select></th>`;
+                    } else {
+                        // Text filter for currentCompany, previousCompany
+                        headerHtml += `<th>${clearableInput(col.id)}</th>`;
+                    }
+                } else {
+                    // Answer column — text filter
+                    headerHtml += `<th class="answer-col">${clearableInput('answer:' + col.id)}</th>`;
+                }
+            });
+            headerHtml += `</tr>`;
+
+            tableHead.innerHTML = headerHtml;
+
+            // Restore column filter values
+            Object.entries(savedFilterValues).forEach(([key, val]) => {
+                const el = tableHead.querySelector(`.col-filter[data-filter="${key}"]`);
+                if (el) el.value = val;
+            });
+
+            // Restore focus and cursor position if a filter was focused
+            if (focusedFilterKey) {
+                const focusedEl = tableHead.querySelector(`.col-filter[data-filter="${focusedFilterKey}"]`);
+                if (focusedEl) {
+                    focusedEl.focus();
+                    // setSelectionRange only works on text-like inputs, not <select>
+                    if (cursorPosition !== null && typeof focusedEl.setSelectionRange === 'function') {
+                        try { focusedEl.setSelectionRange(cursorPosition, cursorPosition); } catch (e) {}
+                    }
+                }
+            }
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            // Reset select all checkbox and delete button when table re-renders
+            const selectAllCheck = document.getElementById('selectAllCheck');
+            if (selectAllCheck) selectAllCheck.checked = false;
+            updateSelectedCount();
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${3 + visibleCols.length}" style="text-align: center; padding: 2rem;">No matching profiles found.</td></tr>`;
+                return;
+            }
+
+            // Create options HTML statically to inject into template
+            const genOptions = (arr, selected) => {
+                return arr.map(opt => `<option value="${opt}" ${selected === opt ? 'selected' : ''}>${opt}</option>`).join('');
+            };
+
+            data.forEach(profile => {
+                const tr = document.createElement('tr');
+                if (profile.displayStatus && profile.displayStatus !== 'Not Reviewed' && profile.displayStatus !== 'Pending') {
+                    tr.className = 'status-' + profile.displayStatus.replace(' ', '-');
+                }
+                
+                let displayName = profile.displayName;
+
+                const fallbackSrc = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(displayName) + '&background=f0f0f0&color=f06449&rounded=true';
+                let realPicUrl = profile.profilePicture ? profile.profilePicture.url : fallbackSrc;
+                let picUrl = realPicUrl;
+                let errSrc = fallbackSrc;
+
+                const blockImages = document.getElementById('blockExternalImagesToggle') && document.getElementById('blockExternalImagesToggle').checked;
+                if (blockImages) {
+                    const initials = displayName ? displayName.charAt(0).toUpperCase() : '?';
+                    const safeSvg = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="20" fill="#f0f0f0"/><text x="50%" y="50%" font-family="Inter, sans-serif" font-size="16" font-weight="500" fill="#f06449" text-anchor="middle" dy=".35em">' + initials + '</text></svg>').replace(/'/g, "%27");
+                    picUrl = safeSvg;
+                    errSrc = safeSvg;
+                }
+                
+                let badgesHtml = '';
+                if(profile.openToWork) badgesHtml += `<span class="badge">Open to Work</span>`;
+                if(profile.premium) badgesHtml += `<span class="badge">Premium</span>`;
+
+                const cleanId = profile.uniqueId.replace(/'/g, "\\'");
+
+                // Helper to render a core column cell
+                const coreCellRenderers = {
+                    status: () => `<td>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            ${STATUS_LEVELS.filter(s => s !== 'Not Reviewed').map(status => {
+                                const isChecked = profile.displayStatus === status ? 'checked' : '';
+                                const color = status === 'Accept' ? '#16a34a' : status === 'Reject' ? '#e53e3e' : status === 'Not sure' ? '#d97706' : '#999999';
+                                return `<label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; color: ${color};">
+                                    <input type="radio" name="status_${cleanId}" value="${status}" ${isChecked} data-waschecked="${isChecked ? 'true' : 'false'}" onclick="if(this.dataset.waschecked==='true'){ this.checked=false; this.dataset.waschecked='false'; this.closest('tr').className=''; updateField('${cleanId}', 'status', 'Not Reviewed'); } else { document.getElementsByName('status_${cleanId}').forEach(r => r.dataset.waschecked='false'); this.dataset.waschecked='true'; this.closest('tr').className='status-' + this.value.replace(' ', '-'); updateField('${cleanId}', 'status', this.value); }" style="accent-color: ${color}; cursor: pointer; margin: 0;">
+                                    ${status === 'Not sure' ? '???' : status}
+                                </label>`;
+                            }).join('')}
+                        </div>
+                    </td>`,
+                    seniority: () => `<td>
+                        <select class="dark-select" onchange="updateField('${cleanId}', 'seniority', this.value)">
+                            ${genOptions(SENIORITY_LEVELS, profile.displaySeniority)}
+                        </select>
+                    </td>`,
+                    function: () => `<td>
+                        <select class="dark-select" onchange="updateField('${cleanId}', 'func', this.value)">
+                            ${genOptions(FUNCTION_ROLES, profile.displayFunction)}
+                        </select>
+                    </td>`,
+                    currentCompany: () => `<td>
+                        <div class="editable title-cell" contenteditable="true" spellcheck="false"
+                             onblur="updateField('${cleanId}', 'currentCompany', this.innerText)">
+                            ${profile.displayCurrentCompany}
+                        </div>
+                    </td>`,
+                    previousCompany: () => `<td>
+                        <div class="editable title-cell" contenteditable="true" spellcheck="false"
+                             onblur="updateField('${cleanId}', 'previousCompany', this.innerText)">
+                            ${profile.displayPreviousCompany}
+                        </div>
+                    </td>`,
+                };
+
+                let trHtml = `
+                    <td style="text-align: center; padding: 0 0.15rem 0 0.5rem;"><input type="checkbox" class="row-select" data-uniqueid="${cleanId}" onchange="updateSelectedCount()"></td>
+                    <td>
+                        <div class="name-cell">
+                            <div style="position: relative;">
+                                <a href="${profile.linkedinUrl}" target="_blank" title="Open LinkedIn Profile">
+                                    <img src="${picUrl}" alt="${displayName}" class="profile-img" onerror="this.src='${errSrc}'">
+                                </a>
+                                <button onclick="navigator.clipboard.writeText('${profile.linkedinUrl}'); showToast('URL COPIED')" style="position: absolute; right: -4px; bottom: -4px; background: var(--surface); border: 1px solid var(--border); border-radius: 50%; width: 20px; height: 20px; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 10px;" title="Copy URL">📋</button>
+                            </div>
+                            <div>
+                                <div class="editable" contenteditable="true" spellcheck="false"
+                                     onblur="updateField('${cleanId}', 'name', this.innerText)">${displayName}</div>
+                                <div style="margin-top: 0.25rem;">${badgesHtml}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="title-cell" title="${profile.displayTitle}">${profile.displayTitle}</div>
+                    </td>`;
+
+                visibleCols.forEach(col => {
+                    if (col.type === 'core') {
+                        trHtml += coreCellRenderers[col.id]();
+                    } else {
+                        let isDietary = col.id.startsWith('Do you have any dietary restrictions') || col.id.includes('dietary');
+                        let cellWidth = isDietary ? '200px' : '300px';
+                        const ans = savedOverrides[profile.uniqueId]?.answers?.[col.id] || '<span style="color:#999999">—</span>';
+                        trHtml += `<td class="answer-col">
+                            <div style="font-size: 0.82rem; color: var(--text-secondary); width: ${cellWidth}; white-space: pre-wrap; word-wrap: break-word; line-height: 1.5;">${ans}</div>
+                        </td>`;
+                    }
+                });
+
+                tr.innerHTML = trHtml;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function resetAllColFilters() {
+            document.querySelectorAll('.col-filter').forEach(el => {
+                if (el.tagName === 'SELECT') {
+                    el.selectedIndex = 0;
+                } else {
+                    el.value = '';
+                    const wrap = el.closest('.col-filter-wrap');
+                    if (wrap) wrap.classList.remove('has-value');
+                }
+            });
+            applyFilters();
+        }
+
+        function updateFilterResetBar() {
+            const right = document.getElementById('filterResetRight');
+            const text = document.getElementById('filterResetText');
+            if (!right || !text) return;
+            const activeFilters = [];
+            document.querySelectorAll('.col-filter').forEach(el => {
+                const val = (el.value || '').trim();
+                if (val) {
+                    const key = el.dataset.filter;
+                    const label = key.startsWith('answer:') ? key.substring(7).substring(0, 25) : key;
+                    activeFilters.push(label);
+                }
+            });
+            if (activeFilters.length > 0) {
+                text.textContent = `${activeFilters.length} filter${activeFilters.length > 1 ? 's' : ''} active: ${activeFilters.join(', ')}`;
+                right.style.display = 'flex';
+            } else {
+                right.style.display = 'none';
+            }
+        }
+
+        window.toggleAllRows = function(checked) {
+            document.querySelectorAll('.row-select').forEach(cb => {
+                cb.checked = checked;
+            });
+            updateSelectedCount();
+        };
+
+        window.updateSelectedCount = function() {
+            const checked = document.querySelectorAll('.row-select:checked');
+            const count = checked.length;
+            const area = document.getElementById('deleteSelectedArea');
+            const text = document.getElementById('selectedCountText');
+            if (count > 0) {
+                text.textContent = `${count} row${count > 1 ? 's' : ''} selected`;
+                area.style.display = 'flex';
+            } else {
+                area.style.display = 'none';
+            }
+        };
+
+        window.deleteSelectedRows = async function() {
+            const checked = document.querySelectorAll('.row-select:checked');
+            if (checked.length === 0) return;
+
+            if (!confirm(`Delete ${checked.length} selected profile${checked.length > 1 ? 's' : ''}? This cannot be undone.`)) return;
+
+            const idsToDelete = [];
+            checked.forEach(cb => {
+                const id = cb.dataset.uniqueid;
+                if (id) idsToDelete.push(id);
+            });
+
+            // Remove from fullData
+            fullData = fullData.filter(p => !idsToDelete.includes(p.uniqueId));
+
+            // Remove from savedOverrides
+            idsToDelete.forEach(id => {
+                delete savedOverrides[id];
+            });
+
+            localStorage.setItem('linkedin_overrides', JSON.stringify(savedOverrides));
+            await idbPut('profiles', fullData);
+
+            showToast(`Deleted ${idsToDelete.length} profile${idsToDelete.length > 1 ? 's' : ''}`);
+            applyFilters();
+            renderAnalytics(fullData);
+        };
+
+        function applyFilters() {
+            const term = (document.getElementById('searchInput').value || '').toLowerCase();
+
+            // Collect column-level filters
+            const colFilters = {};
+            document.querySelectorAll('.col-filter').forEach(el => {
+                const key = el.dataset.filter;
+                const val = (el.value || '').trim();
+                if (val) colFilters[key] = val.toLowerCase();
+            });
+
+            let filtered = fullData.filter(profile => {
+                // Global search
+                if (term) {
+                    const name = (profile.displayName || '').toLowerCase();
+                    const titleStr = (profile.displayTitle || '').toLowerCase();
+                    const currentCo = (profile.displayCurrentCompany || '').toLowerCase();
+                    const prevCo = (profile.displayPreviousCompany || '').toLowerCase();
+                    const sen = (profile.displaySeniority || '').toLowerCase();
+                    const fn = (profile.displayFunction || '').toLowerCase();
+                    const statusStr = (profile.displayStatus || '').toLowerCase();
+                    const matches = name.includes(term) ||
+                           titleStr.includes(term) ||
+                           statusStr.includes(term) ||
+                           currentCo.includes(term) ||
+                           prevCo.includes(term) ||
+                           sen.includes(term) ||
+                           fn.includes(term);
+                    if (!matches) return false;
+                }
+
+                // Column-level filters
+                for (const [key, val] of Object.entries(colFilters)) {
+                    if (key === 'profile') {
+                        if (!(profile.displayName || '').toLowerCase().includes(val)) return false;
+                    } else if (key === 'title') {
+                        if (!(profile.displayTitle || '').toLowerCase().includes(val)) return false;
+                    } else if (key === 'status') {
+                        if ((profile.displayStatus || '').toLowerCase() !== val) return false;
+                    } else if (key === 'seniority') {
+                        if ((profile.displaySeniority || '').toLowerCase() !== val) return false;
+                    } else if (key === 'function') {
+                        if ((profile.displayFunction || '').toLowerCase() !== val) return false;
+                    } else if (key === 'currentCompany') {
+                        if (!(profile.displayCurrentCompany || '').toLowerCase().includes(val)) return false;
+                    } else if (key === 'previousCompany') {
+                        if (!(profile.displayPreviousCompany || '').toLowerCase().includes(val)) return false;
+                    } else if (key.startsWith('answer:')) {
+                        const answerKey = key.substring(7);
+                        const ans = (savedOverrides[profile.uniqueId]?.answers?.[answerKey] || '').toLowerCase();
+                        if (!ans.includes(val)) return false;
+                    }
+                }
+                return true;
+            });
+
+            // Analytics use the globally-search-filtered data (not column filtered)
+            const analyticsBase = term
+                ? fullData.filter(profile => {
+                    const pName = (profile.displayName || '').toLowerCase();
+                    const pTitle = (profile.displayTitle || '').toLowerCase();
+                    const pCurrentCo = (profile.displayCurrentCompany || '').toLowerCase();
+                    const pPrevCo = (profile.displayPreviousCompany || '').toLowerCase();
+                    const pSen = (profile.displaySeniority || '').toLowerCase();
+                    const pFn = (profile.displayFunction || '').toLowerCase();
+                    const pStatus = (profile.displayStatus || '').toLowerCase();
+                    return pName.includes(term) || pTitle.includes(term) || pStatus.includes(term) ||
+                           pCurrentCo.includes(term) || pPrevCo.includes(term) || pSen.includes(term) || pFn.includes(term);
+                })
+                : fullData;
+            renderAnalytics(analyticsBase);
+
+            renderTable(filtered);
+            updateFilterResetBar();
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+
+        // Delegate events for column filters (since they're rebuilt on each render)
+        document.getElementById('dataTable').addEventListener('input', (e) => {
+            if (e.target.classList.contains('col-filter') && e.target.tagName === 'INPUT') {
+                applyFilters();
+            }
+        });
+        document.getElementById('dataTable').addEventListener('change', (e) => {
+            if (e.target.classList.contains('col-filter') && e.target.tagName === 'SELECT') {
+                applyFilters();
+            }
+        });
+
+        // Close settings dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const wrap = document.getElementById('settingsDropdownWrap');
+            const dd = document.getElementById('settingsDropdown');
+            if (wrap && dd && !wrap.contains(e.target)) {
+                dd.classList.remove('settings-open');
+            }
+        });
+
+        function scrollToNextUnchecked() {
+            const rows = Array.from(document.querySelectorAll('#tableBody tr'));
+            const uncheckedRows = rows.filter(tr => {
+                if (tr.classList.contains('loading')) return false;
+                if (tr.innerText.includes('No matching profiles')) return false;
+                return !tr.className.includes('status-');
+            });
+            
+            if (uncheckedRows.length === 0) {
+                showToast("All visible profiles reviewed!");
+                return;
+            }
+            
+            const scrollPos = window.scrollY + 100;
+            
+            let target = uncheckedRows.find(tr => {
+                return (tr.getBoundingClientRect().top + window.scrollY) > scrollPos;
+            });
+            
+            if (!target) target = uncheckedRows[0];
+            
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            const oldBg = target.style.backgroundColor;
+            target.style.transition = 'none';
+            target.style.backgroundColor = '#f7f7f7';
+            setTimeout(() => {
+                target.style.transition = 'background-color 0.8s ease';
+                target.style.backgroundColor = oldBg;
+            }, 400);
+        }
+
+        // Initialize
+        init();
+    </script>
+    
+    <button id="nextUncheckedBtn" onclick="scrollToNextUnchecked()" style="position: fixed; bottom: 1.5rem; right: 1.5rem; background: #f06449; color: #ffffff; width: 44px; height: 44px; border-radius: 50%; border: none; font-size: 18px; cursor: pointer; box-shadow: 0 2px 10px rgba(240,100,73,0.35); display: flex; justify-content: center; align-items: center; z-index: 1000; transition: all 0.15s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 16px rgba(240,100,73,0.45)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 10px rgba(240,100,73,0.35)';" title="Scroll to Next Unreviewed Profile">
+        ↓
+    </button>
+</body>
+</html>

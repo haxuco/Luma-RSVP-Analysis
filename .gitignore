@@ -1,0 +1,6 @@
+# Local data files — never commit these
+*.json
+*.csv
+local_images/
+server.py
+.claude/

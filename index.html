@@ -1616,7 +1616,7 @@
                 _apifyRunId = runData.id;
                 _apifyDatasetId = runData.defaultDatasetId;
 
-                apifyLog(`Run started: runId=${_apifyRunId}, datasetId=${_apifyDatasetId}, status=${startData.status}`);
+                apifyLog(`Run started: runId=${_apifyRunId}, datasetId=${_apifyDatasetId}, status=${runData.status}`);
                 updateApifyProgress({ start: 'done', scrape: 'active' }, `Scraping ${cleanUrls.length} profiles...`);
 
                 pollApifyRunStatus();
